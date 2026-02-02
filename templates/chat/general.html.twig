@@ -1,0 +1,379 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Chat General - Chaty{% endblock %}
+
+{% block stylesheets %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --dark-color: #1f2937;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+
+        .chat-footer {
+            background: white;
+            padding: 1.5rem;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .message-author {
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .message-text {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .message.own .message-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .message.own .message-text {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .message-input {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .users-sidebar {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .users-sidebar.active {
+            right: 0;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            position: sticky;
+            top: 0;
+        }
+
+        .user-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const userToken = '{{ token }}';
+        const chatId = {{ chat.id }};
+        let lastMessageId = {{ mensajes|length > 0 ? mensajes|last.id : 0 }};
+
+        // Toggle sidebar de usuarios
+        function toggleUsersSidebar() {
+            document.querySelector('.users-sidebar').classList.toggle('active');
+        }
+
+        // Enviar mensaje
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+
+            try {
+                const response = await fetch('{{ path('app_api_mensaje') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        Contenido: content,
+                        tokenUsuario: userToken
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    await updateMessages();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar mensaje');
+            }
+        }
+
+        // Actualizar mensajes
+        async function updateMessages() {
+            try {
+                const response = await fetch('{{ path('app_api_actualizar') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tokenUsuario: userToken,
+                        id_Chat: chatId,
+                        id_ultimoMensaje: lastMessageId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.data.mensajes && data.data.mensajes.length > 0) {
+                    appendNewMessages(data.data.mensajes);
+                    lastMessageId = data.data.mensajes[data.data.mensajes.length - 1].id;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Agregar nuevos mensajes al DOM
+        function appendNewMessages(messages) {
+            const chatBody = document.querySelector('.chat-body');
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">${msg.nombreUsuario.charAt(0).toUpperCase()}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${msg.nombreUsuario}</span>
+                            <span class="message-time">${new Date(msg.fecha).toLocaleTimeString()}</span>
+                        </div>
+                        <div class="message-text">${msg.contenido}</div>
+                    </div>
+                `;
+                
+                chatBody.appendChild(messageDiv);
+            });
+            
+            // Scroll al final
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Enter para enviar
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('messageInput');
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Scroll al final al cargar
+            const chatBody = document.querySelector('.chat-body');
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // Actualizar mensajes cada 3 segundos
+            setInterval(updateMessages, 3000);
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0">
+                    <i class="fas fa-globe"></i> Chat General
+                </h3>
+                <small>Chat público de la plataforma</small>
+            </div>
+            <div>
+                <button class="btn btn-light me-2" onclick="toggleUsersSidebar()">
+                    <i class="fas fa-users"></i> {{ usuarios|length }}
+                </button>
+                <a href="{{ path('app_chat_home', {token: token}) }}" class="btn btn-light">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-body">
+        {% for mensaje in mensajes %}
+            <div class="message {% if mensaje.nombreUsuario.id == user.id %}own{% endif %}">
+                <div class="message-avatar">
+                    {{ mensaje.nombreUsuario.nombre|slice(0, 1)|upper }}
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">{{ mensaje.nombreUsuario.nombre }}</span>
+                        <span class="message-time">{{ mensaje.fechaHora|date('H:i') }}</span>
+                    </div>
+                    <div class="message-text">
+                        {{ mensaje.contenido }}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="chat-footer">
+        <div class="row g-2">
+            <div class="col">
+                <input type="text" class="form-control message-input" id="messageInput" 
+                       placeholder="Escribe tu mensaje...">
+            </div>
+            <div class="col-auto">
+                <button class="send-btn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar de usuarios -->
+<div class="users-sidebar">
+    <div class="sidebar-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-users"></i> Usuarios en línea
+            </h5>
+            <button class="btn btn-sm btn-light" onclick="toggleUsersSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="users-list">
+        {% for usuario in usuarios %}
+            <div class="user-item">
+                <div class="user-status"></div>
+                <div>
+                    <strong>{{ usuario.nombre }}</strong>
+                    {% if usuario.id == user.id %}
+                        <span class="badge bg-primary">Tú</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

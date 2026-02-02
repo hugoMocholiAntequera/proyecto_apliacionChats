@@ -1,0 +1,405 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Home - Chaty{% endblock %}
+
+{% block stylesheets %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --dark-color: #1f2937;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .header-bar {
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .chat-dashboard {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .chat-dashboard.active {
+            right: 0;
+        }
+
+        .dashboard-toggle {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-toggle:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .chat-list-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .chat-list-item:hover {
+            background: #f3f4f6;
+        }
+
+        .chat-general {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white !important;
+        }
+
+        .chat-general:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .nearby-users-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .user-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .distance-badge {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .invite-btn {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .invite-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .location-form {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const userToken = '{{ token }}';
+        let nearbyUsers = [];
+
+        // Toggle dashboard
+        function toggleDashboard() {
+            document.querySelector('.chat-dashboard').classList.toggle('active');
+        }
+
+        // Actualizar ubicación
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    document.getElementById('latitud').value = lat;
+                    document.getElementById('longitud').value = lon;
+
+                    await searchNearbyUsers(lat, lon);
+                }, (error) => {
+                    alert('Error al obtener ubicación: ' + error.message);
+                });
+            } else {
+                alert('Geolocalización no soportada');
+            }
+        }
+
+        // Buscar usuarios cercanos
+        async function searchNearbyUsers(lat, lon) {
+            try {
+                const response = await fetch('{{ path('app_api_home') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tokenUsuario: userToken,
+                        latitud: lat,
+                        longitud: lon,
+                        geolocalizacion: true
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayNearbyUsers(data.data.usuariosCercanos);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al buscar usuarios cercanos');
+            }
+        }
+
+        // Mostrar usuarios cercanos
+        function displayNearbyUsers(users) {
+            nearbyUsers = users;
+            const container = document.getElementById('nearbyUsersContainer');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No hay usuarios cercanos en este momento</p>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div class="col-md-6 mb-3">
+                    <div class="user-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="mb-1">${user.nombre}</h5>
+                                <span class="distance-badge">
+                                    <i class="fas fa-map-marker-alt"></i> ${user.distanciaKm.toFixed(2)} km
+                                </span>
+                            </div>
+                            <button class="invite-btn" onclick="inviteUser('${user.token}', '${user.nombre}')">
+                                <i class="fas fa-envelope"></i> Invitar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Invitar usuario
+        async function inviteUser(userToken, userName) {
+            const message = prompt(`Escribe un mensaje para invitar a ${userName}:`);
+            if (!message) return;
+
+            try {
+                const response = await fetch('{{ path('app_api_invitacion') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tokenUsuario: '{{ token }}',
+                        tokenUsuarioInvitado: userToken,
+                        idChat: 2, // Chat general
+                        mensaje: message
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('¡Invitación enviada con éxito!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar invitación');
+            }
+        }
+
+        // Auto-actualizar ubicación al cargar
+        window.addEventListener('load', () => {
+            updateLocation();
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+<div class="header-bar">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="user-info">
+                <div class="user-avatar">
+                    {{ user.nombre|slice(0, 1)|upper }}
+                </div>
+                <div>
+                    <h5 class="mb-0">{{ user.nombre }}</h5>
+                    <small class="text-muted">{{ user.email }}</small>
+                </div>
+            </div>
+            <div>
+                <a href="{{ path('app_api') }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-code"></i> API
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- Formulario de ubicación -->
+    <div class="location-form">
+        <h3 class="section-title">
+            <i class="fas fa-location-arrow"></i> Tu Ubicación
+        </h3>
+        <div class="row">
+            <div class="col-md-5">
+                <input type="number" step="any" class="form-control" id="latitud" placeholder="Latitud" readonly>
+            </div>
+            <div class="col-md-5">
+                <input type="number" step="any" class="form-control" id="longitud" placeholder="Longitud" readonly>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" onclick="updateLocation()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usuarios cercanos -->
+    <div class="nearby-users-section">
+        <h3 class="section-title">
+            <i class="fas fa-users"></i> Usuarios Cercanos
+        </h3>
+        <div class="row" id="nearbyUsersContainer">
+            <p class="text-muted text-center">Cargando usuarios cercanos...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard de chats (lateral) -->
+<div class="chat-dashboard">
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-comments"></i> Mis Chats
+            </h4>
+            <button class="btn btn-sm btn-light" onclick="toggleDashboard()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="chat-list">
+        <a href="{{ path('app_chat_general', {token: token}) }}" class="chat-list-item chat-general">
+            <i class="fas fa-globe"></i> <strong>Chat General</strong>
+            <br>
+            <small>Chat público de la plataforma</small>
+        </a>
+        
+        {% for chat in user.chatPerteneciente %}
+            {% if chat.id != 1 %}
+                <a href="{{ path('app_chat_privado', {chatId: chat.id, token: token}) }}" class="chat-list-item">
+                    <i class="fas fa-comments"></i> <strong>{{ chat.nombre ?? 'Chat #' ~ chat.id }}</strong>
+                    <br>
+                    <small>{{ chat.users|length }} participantes</small>
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Botón toggle dashboard -->
+<div class="dashboard-toggle" onclick="toggleDashboard()">
+    <i class="fas fa-comments fa-2x"></i>
+</div>
+{% endblock %}

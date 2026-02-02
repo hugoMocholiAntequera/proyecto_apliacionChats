@@ -1,0 +1,981 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Documentación de API - Chaty{% endblock %}
+
+{% block stylesheets %}
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Prism.js para resaltado de código -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --dark-color: #1f2937;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .api-header {
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .api-title {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+            font-size: 3rem;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .sidebar-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #4b5563;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .sidebar-link:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .sidebar-link i {
+            width: 25px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .endpoint-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .endpoint-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .endpoint-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin: 0;
+        }
+
+        .method-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            letter-spacing: 0.5px;
+        }
+
+        .method-post {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .method-put {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .endpoint-path {
+            background: #f9fafb;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-color);
+            font-weight: 600;
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .code-block {
+            background: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-header {
+            background: #0f172a;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-title {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 0.25rem 0.75rem;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #475569;
+            color: white;
+        }
+
+        pre {
+            margin: 0 !important;
+            padding: 1rem !important;
+            background: transparent !important;
+        }
+
+        .validation-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 1rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .validation-table thead {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .validation-table th {
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .validation-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .validation-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .validation-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .response-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .response-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .response-error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .alert-custom {
+            border-radius: 10px;
+            border-left: 4px solid;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border-color: var(--info-color);
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-color: var(--warning-color);
+            color: #92400e;
+        }
+
+        .badge-required {
+            background: #ef4444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-optional {
+            background: #6b7280;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .scroll-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .access-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .access-public {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .access-private {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Prism.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollBtn = document.querySelector('.scroll-to-top');
+            if (window.pageYOffset > 300) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        });
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block').querySelector('code');
+            const text = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copiado';
+                button.style.background = '#10b981';
+                button.style.borderColor = '#10b981';
+                button.style.color = 'white';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'transparent';
+                    button.style.borderColor = '#475569';
+                    button.style.color = '#94a3b8';
+                }, 2000);
+            });
+        }
+
+        // Copy response by element id
+        function copyResponse(codeId) {
+            const codeEl = document.getElementById(codeId);
+            if (!codeEl) return;
+            navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+                // small visual feedback could be added here
+            });
+        }
+
+        // Render JSON response into a code block and highlight
+        function renderResponse(codeId, obj, statusElId, statusText, ok) {
+            const codeEl = document.getElementById(codeId);
+            const statusEl = document.getElementById(statusElId);
+            if (codeEl) {
+                codeEl.textContent = JSON.stringify(obj, null, 2);
+                if (window.Prism && Prism.highlightElement) {
+                    Prism.highlightElement(codeEl);
+                }
+            }
+            if (statusEl) {
+                statusEl.style.display = 'inline-block';
+                statusEl.textContent = statusText || '';
+                statusEl.classList.remove('response-success', 'response-error');
+                statusEl.classList.add(ok ? 'response-success' : 'response-error');
+            }
+        }
+
+        // Handler for Conexión form
+        function handleConexion(e) {
+            e.preventDefault();
+            const apiKey = (document.getElementById('apiKey')||{}).value || '';
+            if (!apiKey.trim()) {
+                renderResponse('resp-conexion', {success:false,message:'API Key requerida',error:{apiKey:'Campo obligatorio'}}, 'resp-conexion-status', '400 Bad Request', false);
+                return;
+            }
+            if (apiKey.trim().length < 32) {
+                renderResponse('resp-conexion', {success:false,message:'API Key inválida',error:null}, 'resp-conexion-status', '401 Unauthorized', false);
+                return;
+            }
+            renderResponse('resp-conexion', {success:true,message:'Conexión exitosa',data:{apiStatus:'Activa',timestamp:new Date().toISOString()}}, 'resp-conexion-status', '200 OK', true);
+        }
+
+        // Basic email validator
+        function isValidEmail(email) {
+            return /^\S+@\S+\.\S+$/.test(email);
+        }
+
+        // Handler for Login form
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = (document.getElementById('login-email')||{}).value || '';
+            const password = (document.getElementById('login-password')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!email.trim()) missing.push('email');
+            if (!password) missing.push('password');
+            if (missing.length) {
+                renderResponse('resp-login', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-login-status', '400 Bad Request', false);
+                return;
+            }
+
+            if (!isValidEmail(email.trim())) {
+                renderResponse('resp-login', {success:false,message:'El email no tiene un formato válido',error:{email:'Formato inválido'}}, 'resp-login-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Password rules: min 8 chars, at least 1 uppercase and 1 number
+            const hasMin = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            if (!hasMin || !hasUpper || !hasNumber) {
+                renderResponse('resp-login', {success:false,message:'La contraseña no cumple los requisitos de seguridad',error:{password:'Debe tener mínimo 8 caracteres, una mayúscula y un número'}}, 'resp-login-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-login', {success:true,message:'Login exitoso',data:{nombreDeUsuario: email.split('@')[0]}}, 'resp-login-status', '200 OK', true);
+        }
+    </script>
+{% endblock %}
+
+{% block body %}
+<div class="api-header">
+    <div class="container">
+        <h1 class="api-title text-center mb-3">
+            <i class="fas fa-code"></i> Documentación API Chaty
+        </h1>
+        <p class="text-center text-muted fs-5">
+            Documentación completa de todos los endpoints disponibles
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="sidebar">
+                <h5 class="mb-3 fw-bold text-dark">
+                    <i class="fas fa-list"></i> Endpoints
+                </h5>
+                <a href="#conexion" class="sidebar-link">
+                    <i class="fas fa-plug"></i> Conexión
+                </a>
+                <a href="#login" class="sidebar-link">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="#registro" class="sidebar-link">
+                    <i class="fas fa-user-plus"></i> Registro
+                </a>
+                <a href="#logout" class="sidebar-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+                <a href="#perfil" class="sidebar-link">
+                    <i class="fas fa-user-circle"></i> Perfil
+                </a>
+                <a href="#editar-perfil" class="sidebar-link">
+                    <i class="fas fa-user-edit"></i> Editar Perfil
+                </a>
+                <a href="#home" class="sidebar-link">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="#actualizar" class="sidebar-link">
+                    <i class="fas fa-sync"></i> Actualizar
+                </a>
+                <a href="#invitar" class="sidebar-link">
+                    <i class="fas fa-envelope"></i> Invitar
+                </a>
+                <a href="#mensaje" class="sidebar-link">
+                    <i class="fas fa-comment"></i> Mensaje
+                </a>
+                <a href="#salir-chat" class="sidebar-link">
+                    <i class="fas fa-door-open"></i> Salir Chat
+                </a>
+                <a href="#cambiar-chat" class="sidebar-link">
+                    <i class="fas fa-exchange-alt"></i> Cambiar Chat
+                </a>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="col-lg-9">
+            <!-- Conexión -->
+            <div id="conexion" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-plug"></i> Conexión</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-public">
+                        <i class="fas fa-globe"></i> Público (requiere API Key)
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/conexion
+                </div>
+
+                <p class="lead">
+                    Permite que la aplicación valide la conexión con la API usando una API key. Esta clave se envía desde la aplicación y se compara con la clave almacenada en el backend.
+                </p>
+
+                <div class="alert-custom alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Útil para:</strong> Verificar que la aplicación tiene permiso de acceso a la API antes de realizar llamadas a otros endpoints.
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "apiKey": "STRING"
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>apiKey</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe coincidir con la API Key almacenada en el backend<br>
+                                • Longitud mínima: 32 caracteres (recomendado)<br>
+                                • No sensible a mayúsculas/minúsculas si se desea normalizar
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert-custom alert-warning">
+                    <i class="fas fa-lock"></i>
+                    <strong>Seguridad:</strong> La API Key se puede guardar como constante en el backend o en variables de entorno para mayor seguridad.
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Conexión exitosa",
+  "data": {
+    "apiStatus": "Activa",
+    "timestamp": "2026-01-30T12:15:00Z"
+  }
+}</code></pre>
+                </div>
+
+                <!-- Interactive form for Conexión -->
+                <form id="form-conexion" class="mb-3" onsubmit="handleConexion(event)">
+                    <div class="mb-2">
+                        <label class="form-label">API Key</label>
+                        <input id="apiKey" name="apiKey" type="text" class="form-control" placeholder="Introduce la API Key aquí">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-conexion-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-conexion')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-conexion">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>API Key faltante (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "API Key requerida",
+  "error": {
+    "apiKey": "Campo obligatorio"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>API Key inválida (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "API Key inválida",
+  "error": null
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Login -->
+            <div id="login" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-sign-in-alt"></i> Login</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-public">
+                        <i class="fas fa-globe"></i> Público
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/login
+                </div>
+
+                <p class="lead">
+                    Inicia sesión con las credenciales del usuario y devuelve la información necesaria para comenzar a usar la aplicación.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "email": "STRING",
+  "password": "STRING"
+}</code></pre>
+                </div>
+
+                <!-- Interactive form for Login -->
+                <form id="form-login" class="mb-3" onsubmit="handleLogin(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input id="login-email" name="email" type="email" class="form-control" placeholder="usuario@ejemplo.com">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Password</label>
+                        <input id="login-password" name="password" type="password" class="form-control" placeholder="Contraseña">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-login-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-login')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-login">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>email</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                                • Debe contener @ y un dominio válido
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>password</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                                • Mínimo 8 caracteres<br>
+                                • Al menos 1 letra mayúscula<br>
+                                • Al menos 1 número
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Login exitoso",
+  "data": {
+    "nombreDeUsuario": "juan.perez"
+  }
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Usuario o contraseña inválidos (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Usuario o contraseña inválidos",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["email", "password"]
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Formato de email inválido (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El email no tiene un formato válido",
+  "error": {
+    "email": "Formato inválido"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Contraseña no cumple las reglas (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La contraseña no cumple los requisitos de seguridad",
+  "error": {
+    "password": "Debe tener mínimo 8 caracteres, una mayúscula y un número"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Longitud de campos excedida (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Longitud de campo excedida",
+  "error": {
+    "email": "Máximo 255 caracteres",
+    "password": "Máximo 255 caracteres"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usuario bloqueado o inactivo (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El usuario se encuentra bloqueado o inactivo",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Error interno del servidor",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- NOTA: El resto de los endpoints (Registro, Logout, Perfil, Editar Perfil, Home, Actualizar, Invitar, Mensaje, Salir Chat, Cambiar Chat)
+                 están incluidos en el archivo index.html.twig y se copiarán aquí -->
+            
+        </div>
+    </div>
+</div>
+
+<div class="scroll-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+    <i class="fas fa-arrow-up"></i>
+</div>
+{% endblock %}
