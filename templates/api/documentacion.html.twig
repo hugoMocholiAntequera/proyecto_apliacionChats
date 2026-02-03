@@ -478,6 +478,449 @@
             // Simulate success (in real app you'd call backend)
             renderResponse('resp-login', {success:true,message:'Login exitoso',data:{nombreDeUsuario: email.split('@')[0]}}, 'resp-login-status', '200 OK', true);
         }
+
+        // Handler for Registro form
+        function handleRegistro(e) {
+            e.preventDefault();
+            const nombre = (document.getElementById('registro-nombre')||{}).value || '';
+            const email = (document.getElementById('registro-email')||{}).value || '';
+            const password = (document.getElementById('registro-password')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!nombre.trim()) missing.push('nombre');
+            if (!email.trim()) missing.push('email');
+            if (!password) missing.push('password');
+            if (missing.length) {
+                renderResponse('resp-registro', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-registro-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Length validation
+            const lengthErrors = {};
+            if (nombre.trim().length > 100) lengthErrors.nombre = 'Longitud no permitida';
+            if (email.trim().length > 180) lengthErrors.email = 'Longitud no permitida';
+            if (password.length > 255) lengthErrors.password = 'Longitud no permitida';
+            if (Object.keys(lengthErrors).length > 0) {
+                renderResponse('resp-registro', {success:false,message:'Longitud de campo inválida',error: lengthErrors}, 'resp-registro-status', '400 Bad Request', false);
+                return;
+            }
+
+            if (!isValidEmail(email.trim())) {
+                renderResponse('resp-registro', {success:false,message:'El correo electrónico no tiene un formato válido',error:{email:'Formato inválido'}}, 'resp-registro-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Password rules: min 8 chars
+            if (password.length < 8) {
+                renderResponse('resp-registro', {success:false,message:'La contraseña no cumple con los requisitos',error:{password:'Debe tener al menos 8 caracteres'}}, 'resp-registro-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            const token = 'abc123def456' + Math.random().toString(36).substr(2, 9);
+            const fechaCreacion = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            renderResponse('resp-registro', {success:true,message:'Registro exitoso',data:{token: token, fechaCreacion: fechaCreacion}}, 'resp-registro-status', '201 Created', true);
+        }
+
+        // Handler for Logout form
+        function handleLogout(e) {
+            e.preventDefault();
+            const token = (document.getElementById('logout-token')||{}).value || '';
+
+            // Missing token
+            if (!token.trim()) {
+                renderResponse('resp-logout', {success:false,message:'Token de usuario requerido',error:{tokenUsuario: 'Campo obligatorio'}}, 'resp-logout-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-logout', {success:false,message:'Token inválido',error:{}}, 'resp-logout-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-logout', {success:true,message:'salida exitosa',data:{}}, 'resp-logout-status', '200 OK', true);
+        }
+
+        // Handler for Perfil form
+        function handlePerfil(e) {
+            e.preventDefault();
+            const token = (document.getElementById('perfil-token')||{}).value || '';
+
+            // Missing token
+            if (!token.trim()) {
+                renderResponse('resp-perfil', {success:false,message:'Token de usuario requerido',error:{tokenUsuario: 'Campo obligatorio'}}, 'resp-perfil-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-perfil', {success:false,message:'Token inválido',error:{}}, 'resp-perfil-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            const fechaCreacion = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            renderResponse('resp-perfil', {success:true,message:'Datos devueltos correctamente',data:{nombre:'Juan Pérez',localización:'40.7128, -74.0060',imagenAvatar:'https://example.com/avatar.jpg',biografia:'Desarrollador web apasionado',fechaCreacion:fechaCreacion}}, 'resp-perfil-status', '200 OK', true);
+        }
+
+        // Handler for Editar Perfil form
+        function handleEditarPerfil(e) {
+            e.preventDefault();
+            const token = (document.getElementById('editar-perfil-token')||{}).value || '';
+            const nombre = (document.getElementById('editar-perfil-nombre')||{}).value || '';
+            const avatar = (document.getElementById('editar-perfil-avatar')||{}).value || '';
+            const biografia = (document.getElementById('editar-perfil-biografia')||{}).value || '';
+            const passwordActual = (document.getElementById('editar-perfil-password-actual')||{}).value || '';
+            const passwordNueva = (document.getElementById('editar-perfil-password-nueva')||{}).value || '';
+
+            // Missing token
+            if (!token.trim()) {
+                renderResponse('resp-editar-perfil', {success:false,message:'Token de usuario requerido',error:{tokenUsuario: 'Campo obligatorio'}}, 'resp-editar-perfil-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-editar-perfil', {success:false,message:'Token inválido o expirado',error:{}}, 'resp-editar-perfil-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Biografia length validation
+            if (biografia.trim().length > 255) {
+                renderResponse('resp-editar-perfil', {success:false,message:'La biografía excede la longitud permitida',error:{biografia:'Máximo 255 caracteres'}}, 'resp-editar-perfil-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Password change validation
+            if (passwordNueva.trim()) {
+                // If new password provided, current password is required
+                if (!passwordActual.trim()) {
+                    renderResponse('resp-editar-perfil', {success:false,message:'Contraseña incorrecta',error:{passwordActual:'No coincide con la registrada'}}, 'resp-editar-perfil-status', '401 Unauthorized', false);
+                    return;
+                }
+
+                // New password must be at least 8 characters
+                if (passwordNueva.trim().length < 8) {
+                    renderResponse('resp-editar-perfil', {success:false,message:'La nueva contraseña no cumple con los requisitos',error:{passwordNueva:'Debe tener al menos 8 caracteres'}}, 'resp-editar-perfil-status', '400 Bad Request', false);
+                    return;
+                }
+
+                // Simulate wrong current password (random chance)
+                if (Math.random() < 0.3) {
+                    renderResponse('resp-editar-perfil', {success:false,message:'Contraseña incorrecta',error:{passwordActual:'No coincide con la registrada'}}, 'resp-editar-perfil-status', '401 Unauthorized', false);
+                    return;
+                }
+            }
+
+            // Simulate user not found (random chance)
+            if (Math.random() < 0.1) {
+                renderResponse('resp-editar-perfil', {success:false,message:'Usuario no encontrado',error:{}}, 'resp-editar-perfil-status', '404 Not Found', false);
+                return;
+            }
+
+            // Simulate database error (random chance)
+            if (Math.random() < 0.05) {
+                renderResponse('resp-editar-perfil', {success:false,message:'No se pudieron actualizar los datos del usuario',error:{data:'Error al persistir la información'}}, 'resp-editar-perfil-status', '409 Conflict', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-editar-perfil', {success:true,message:'Datos actualizados correctamente',data:{}}, 'resp-editar-perfil-status', '200 OK', true);
+        }
+
+        // Handler for Home form
+        function handleHome(e) {
+            e.preventDefault();
+            const token = (document.getElementById('home-token')||{}).value || '';
+            const latitud = (document.getElementById('home-latitud')||{}).value || '';
+            const longitud = (document.getElementById('home-longitud')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!token.trim()) missing.push('tokenUsuario');
+            if (latitud === '') missing.push('latitud');
+            if (longitud === '') missing.push('longitud');
+            if (missing.length) {
+                renderResponse('resp-home', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-home-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-home', {success:false,message:'Token de usuario inválido',error:null}, 'resp-home-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // GPS coordinates validation
+            const lat = parseFloat(latitud);
+            const lng = parseFloat(longitud);
+            if (isNaN(lat) || lat < -90 || lat > 90) {
+                renderResponse('resp-home', {success:false,message:'Coordenadas GPS inválidas',error:{latitud:'Debe estar entre -90 y 90'}}, 'resp-home-status', '400 Bad Request', false);
+                return;
+            }
+            if (isNaN(lng) || lng < -180 || lng > 180) {
+                renderResponse('resp-home', {success:false,message:'Coordenadas GPS inválidas',error:{longitud:'Debe estar entre -180 y 180'}}, 'resp-home-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-home', {success:true,message:'Usuarios cargados correctamente',data:{usuarios:[{id:2,nombre:'María García',distancia:2.3,imagenAvatar:'https://example.com/avatar2.jpg'},{id:3,nombre:'Carlos López',distancia:3.8,imagenAvatar:'https://example.com/avatar3.jpg'}],invitaciones:[{id:1,remitente:'Ana Martínez',mensaje:'¿Quieres chatear?',fecha:'2024-01-15 10:30:00'}]}}, 'resp-home-status', '200 OK', true);
+        }
+
+        // Function to toggle between geolocalizacion and chat fields
+        function toggleActualizarFields() {
+            const tipo = document.getElementById('actualizar-tipo').value;
+            const geoFields = document.getElementById('fields-geolocalizacion');
+            const chatFields = document.getElementById('fields-chat');
+            
+            if (tipo === 'geolocalizacion') {
+                geoFields.style.display = 'block';
+                chatFields.style.display = 'none';
+            } else {
+                geoFields.style.display = 'none';
+                chatFields.style.display = 'block';
+            }
+        }
+
+        // Handler for Actualizar form
+        function handleActualizar(e) {
+            e.preventDefault();
+            const token = (document.getElementById('actualizar-token')||{}).value || '';
+            const tipo = document.getElementById('actualizar-tipo').value;
+
+            // Missing token
+            if (!token.trim()) {
+                renderResponse('resp-actualizar', {success:false,message:'Datos incompletos',error:{fields: ['tokenUsuario']}}, 'resp-actualizar-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-actualizar', {success:false,message:'Token de usuario inválido',error:null}, 'resp-actualizar-status', '401 Unauthorized', false);
+                return;
+            }
+
+            if (tipo === 'geolocalizacion') {
+                // Caso A: Geolocalización
+                const latitud = (document.getElementById('actualizar-latitud')||{}).value || '';
+                const longitud = (document.getElementById('actualizar-longitud')||{}).value || '';
+
+                if (latitud === '' || longitud === '') {
+                    renderResponse('resp-actualizar', {success:false,message:'Datos incompletos',error:{fields: ['geolocalizacion.latitud', 'geolocalizacion.longitud']}}, 'resp-actualizar-status', '400 Bad Request', false);
+                    return;
+                }
+
+                const lat = parseFloat(latitud);
+                const lng = parseFloat(longitud);
+                if (isNaN(lat) || lat < -90 || lat > 90 || isNaN(lng) || lng < -180 || lng > 180) {
+                    renderResponse('resp-actualizar', {success:false,message:'Coordenadas GPS inválidas',error:{latitud:'Debe estar entre -90 y 90', longitud:'Debe estar entre -180 y 180'}}, 'resp-actualizar-status', '400 Bad Request', false);
+                    return;
+                }
+
+                // Simulate success for geolocalización
+                renderResponse('resp-actualizar', {success:true,message:'Usuarios cargados correctamente',data:{usuarios:[{id:2,nombre:'María García',distanciaKm:2.3},{id:3,nombre:'Carlos López',distanciaKm:3.8}],invitaciones:[{id:1,remitente:'Ana Martínez',mensaje:'¿Quieres chatear?',fecha:'2024-01-15 10:30:00'}]}}, 'resp-actualizar-status', '200 OK', true);
+
+            } else {
+                // Caso B: Actualización de Chat
+                const idChat = (document.getElementById('actualizar-id-chat')||{}).value || '';
+                const idUltimoMensaje = (document.getElementById('actualizar-id-ultimo')||{}).value || '';
+
+                if (idChat === '' || idUltimoMensaje === '') {
+                    renderResponse('resp-actualizar', {success:false,message:'Datos incompletos',error:{fields: ['id_Chat', 'id_ultimoMensaje']}}, 'resp-actualizar-status', '400 Bad Request', false);
+                    return;
+                }
+
+                const chatId = parseInt(idChat);
+                const ultimoMsgId = parseInt(idUltimoMensaje);
+
+                if (isNaN(chatId) || chatId <= 0 || isNaN(ultimoMsgId) || ultimoMsgId < 0) {
+                    renderResponse('resp-actualizar', {success:false,message:'IDs inválidos',error:{id_Chat:'Debe ser un número positivo', id_ultimoMensaje:'Debe ser un número positivo o cero'}}, 'resp-actualizar-status', '400 Bad Request', false);
+                    return;
+                }
+
+                // Simulate success for chat update
+                renderResponse('resp-actualizar', {success:true,message:'Mensajes cargados correctamente',data:{usuarios:[{id:1,nombre:'Juan Pérez'},{id:2,nombre:'María García'}],mensajes:[{id:101,remitente:'María García',contenido:'¡Hola! ¿Cómo estás?',fecha:'2024-01-15 14:30:00'}],invitaciones:[]}}, 'resp-actualizar-status', '200 OK', true);
+            }
+        }
+
+        // Handler for Invitar form
+        function handleInvitar(e) {
+            e.preventDefault();
+            const tokenRemitente = (document.getElementById('invitar-token-remitente')||{}).value || '';
+            const tokenInvitado = (document.getElementById('invitar-token-invitado')||{}).value || '';
+            const idChat = (document.getElementById('invitar-id-chat')||{}).value || '';
+            const mensaje = (document.getElementById('invitar-mensaje')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!tokenRemitente.trim()) missing.push('tokenUsuario');
+            if (!tokenInvitado.trim()) missing.push('tokenUsuarioInvitado');
+            if (!idChat.trim()) missing.push('idChat');
+            if (!mensaje.trim()) missing.push('mensaje');
+            if (missing.length) {
+                renderResponse('resp-invitar', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-invitar-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(tokenRemitente.trim())) {
+                renderResponse('resp-invitar', {success:false,message:'Token del usuario inválido',error:{}}, 'resp-invitar-status', '401 Unauthorized', false);
+                return;
+            }
+
+            if (!/^[a-f0-9]{64}$/i.test(tokenInvitado.trim())) {
+                renderResponse('resp-invitar', {success:false,message:'El usuario invitado no existe o no está activo',error:{tokenUsuarioInvitado:'No válido'}}, 'resp-invitar-status', '404 Not Found', false);
+                return;
+            }
+
+            // Message length validation
+            if (mensaje.trim().length > 255) {
+                renderResponse('resp-invitar', {success:false,message:'El mensaje excede la longitud máxima',error:{mensaje:'Máximo 255 caracteres'}}, 'resp-invitar-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Chat ID validation
+            const chatIdNum = parseInt(idChat);
+            if (isNaN(chatIdNum) || chatIdNum <= 0) {
+                renderResponse('resp-invitar', {success:false,message:'El chat no existe',error:{idChat:'No válido'}}, 'resp-invitar-status', '404 Not Found', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-invitar', {success:true,message:'Invitación creada',data:{tokenUsuario:tokenRemitente.trim(),tokenUsuarioInvitado:tokenInvitado.trim(),idChat:chatIdNum}}, 'resp-invitar-status', '200 OK', true);
+        }
+
+        // Handler for Mensaje form
+        function handleMensaje(e) {
+            e.preventDefault();
+            const chatId = (document.getElementById('mensaje-chat-id')||{}).value || '';
+            const contenido = (document.getElementById('mensaje-contenido')||{}).value || '';
+            const token = (document.getElementById('mensaje-token')||{}).value || '';
+            const imagen = (document.getElementById('mensaje-imagen')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!chatId.trim()) missing.push('chat_id');
+            if (!contenido.trim()) missing.push('Contenido');
+            if (!token.trim()) missing.push('tokenUsuario');
+            if (missing.length) {
+                renderResponse('resp-mensaje', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-mensaje-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-mensaje', {success:false,message:'Token del usuario inválido',error:{}}, 'resp-mensaje-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Content length validation
+            if (contenido.trim().length > 255) {
+                renderResponse('resp-mensaje', {success:false,message:'El mensaje excede la longitud máxima permitida',error:{mensaje:'Máximo 255 caracteres'}}, 'resp-mensaje-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Chat ID validation
+            const chatIdNum = parseInt(chatId);
+            if (isNaN(chatIdNum) || chatIdNum <= 0) {
+                renderResponse('resp-mensaje', {success:false,message:'El chat no existe',error:{chat_id:'No válido'}}, 'resp-mensaje-status', '404 Not Found', false);
+                return;
+            }
+
+            // Image size validation (approximate 12MB limit)
+            if (imagen.trim() && imagen.trim().length > 16000000) { // ~12MB in base64
+                renderResponse('resp-mensaje', {success:false,message:'La imagen excede el tamaño máximo permitido',error:{Imagen:'Máximo 12 MB'}}, 'resp-mensaje-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            const fecha = new Date().toISOString().slice(0, 19).replace('T', 'T');
+            const mensajeId = Math.floor(Math.random() * 1000) + 100;
+            renderResponse('resp-mensaje', {success:true,message:'Mensaje enviado',data:{mensaje_id:mensajeId,fecha:fecha,tokenUsuario:token.trim()}}, 'resp-mensaje-status', '200 OK', true);
+        }
+
+        function handleSalirChat(e) {
+            e.preventDefault();
+            const chatId = (document.getElementById('salir-chat-id')||{}).value || '';
+            const token = (document.getElementById('salir-chat-token')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!chatId.trim()) missing.push('chat_id');
+            if (!token.trim()) missing.push('tokenUsuario');
+            if (missing.length) {
+                renderResponse('resp-salir-chat', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-salir-chat-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-salir-chat', {success:false,message:'Token inválido o expirado',error:{}}, 'resp-salir-chat-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Chat ID validation
+            const chatIdNum = parseInt(chatId);
+            if (isNaN(chatIdNum) || chatIdNum <= 0) {
+                renderResponse('resp-salir-chat', {success:false,message:'El chat no existe',error:{chat_id:'No válido'}}, 'resp-salir-chat-status', '404 Not Found', false);
+                return;
+            }
+
+            // Cannot exit general chat (assuming chat_id 1 is general)
+            if (chatIdNum === 1) {
+                renderResponse('resp-salir-chat', {success:false,message:'No puedes salir del chat general',error:{}}, 'resp-salir-chat-status', '403 Forbidden', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-salir-chat', {success:true,message:'Has salido del chat',data:{}}, 'resp-salir-chat-status', '200 OK', true);
+        }
+
+        function handleCambiarChat(e) {
+            e.preventDefault();
+            const chatIdNuevo = (document.getElementById('cambiar-chat-id')||{}).value || '';
+            const token = (document.getElementById('cambiar-chat-token')||{}).value || '';
+
+            // Missing fields
+            const missing = [];
+            if (!chatIdNuevo.trim()) missing.push('chat_id_nuevo');
+            if (!token.trim()) missing.push('tokenUsuario');
+            if (missing.length) {
+                renderResponse('resp-cambiar-chat', {success:false,message:'Datos incompletos',error:{fields: missing}}, 'resp-cambiar-chat-status', '400 Bad Request', false);
+                return;
+            }
+
+            // Token format validation (64 hex chars)
+            if (!/^[a-f0-9]{64}$/i.test(token.trim())) {
+                renderResponse('resp-cambiar-chat', {success:false,message:'Token inválido o expirado',error:{}}, 'resp-cambiar-chat-status', '401 Unauthorized', false);
+                return;
+            }
+
+            // Chat ID validation
+            const chatIdNum = parseInt(chatIdNuevo);
+            if (isNaN(chatIdNum) || chatIdNum <= 0) {
+                renderResponse('resp-cambiar-chat', {success:false,message:'El chat al que intentas cambiar no existe',error:{chat_id_nuevo:'No válido'}}, 'resp-cambiar-chat-status', '404 Not Found', false);
+                return;
+            }
+
+            // Simulate user not in any active chat (random chance)
+            if (Math.random() < 0.2) {
+                renderResponse('resp-cambiar-chat', {success:false,message:'No puedes cambiar de chat porque no estás en ningún chat activo',error:{}}, 'resp-cambiar-chat-status', '403 Forbidden', false);
+                return;
+            }
+
+            // Simulate user doesn't belong to target chat (random chance)
+            if (Math.random() < 0.3) {
+                renderResponse('resp-cambiar-chat', {success:false,message:'No perteneces a este chat',error:{}}, 'resp-cambiar-chat-status', '403 Forbidden', false);
+                return;
+            }
+
+            // Simulate success (in real app you'd call backend)
+            renderResponse('resp-cambiar-chat', {success:true,message:'Has cambiado de chat',data:{}}, 'resp-cambiar-chat-status', '200 OK', true);
+        }
     </script>
 {% endblock %}
 
@@ -968,8 +1411,2952 @@
                 </div>
             </div>
 
-            <!-- NOTA: El resto de los endpoints (Registro, Logout, Perfil, Editar Perfil, Home, Actualizar, Invitar, Mensaje, Salir Chat, Cambiar Chat)
-                 están incluidos en el archivo index.html.twig y se copiarán aquí -->
+            <!-- Registro -->
+            <div id="registro" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-user-plus"></i> Registro</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-public">
+                        <i class="fas fa-globe"></i> Público
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/register
+                </div>
+
+                <p class="lead">
+                    Registra un nuevo usuario en la aplicación y devuelve el token de autenticación necesario para usar la API.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "nombre": "STRING",
+  "email": "STRING",
+  "password": "STRING"
+}</code></pre>
+                </div>
+
+                <!-- Interactive form for Registro -->
+                <form id="form-registro" class="mb-3" onsubmit="handleRegistro(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Nombre</label>
+                        <input id="registro-nombre" name="nombre" type="text" class="form-control" placeholder="Juan Pérez">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input id="registro-email" name="email" type="email" class="form-control" placeholder="usuario@ejemplo.com">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Password</label>
+                        <input id="registro-password" name="password" type="password" class="form-control" placeholder="Contraseña">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-registro-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-registro')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-registro">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>nombre</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Texto no vacío<br>
+                                • Longitud mínima de 3 caràcteres<br>
+                                • Longitud 155 carácteress<br>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>email</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 180 caracteres<br>
+                                • Debe contener @ y un dominio válido<br>
+                                • Debe ser único en el sistema
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>password</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                                • Mínimo 8 caracteres
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (201 Created)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 201 Created
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Registro exitoso",
+  "data": {
+    "token": "abc123def456...",
+    "fechaCreacion": "2024-01-15 10:30:00"
+  }
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Nombre de usuario ya existente</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Este nombre ya existe",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong> Correo electrónico ya existente </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El correo ya está asociado a una cuenta",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Contraseña no cumple con los requisitos </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La contraseña no cumple con los requisitos",
+  "error": {
+    "password": "Debe tener al menos 8 caracteres"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": [
+      "nombre",
+      "email",
+      "password"
+    ]
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Formato de correo inválido</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El correo electrónico no tiene un formato válido",
+  "error": {
+    "email": "Formato inválido"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Longitud de campos inválida </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Longitud de campo inválida",
+  "error": {
+    "nombre": "Longitud no permitida",
+    "email": "Longitud no permitida"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al crear el usuario </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Error interno del servidor",
+  "error": {}
+}
+</code></pre>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div id="logout" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-sign-out-alt"></i> Logout</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/logout
+                </div>
+
+                <p class="lead">
+                    Cierra la sesión del usuario invalidando su token de autenticación.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "token": "STRING"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> El token también puede enviarse en el header <code>Authorization: Bearer &lt;token&gt;</code>
+                </div>
+
+                <!-- Interactive form for Logout -->
+                <form id="form-logout" class="mb-3" onsubmit="handleLogout(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token de usuario</label>
+                        <input id="logout-token" name="token" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-logout-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-logout')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-logout">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>token</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe corresponder a una sesión activa<br>
+                                • Debe tener un formato válido (por ejemplo, JWT)
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "salida exitosa",
+  "data": {}
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Token no enviado</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">Cuando no se envía el token del usuario.
+{
+  "success": false,
+  "message": "Token de usuario requerido",
+  "error": {
+    "tokenUsuario": "Campo obligatorio"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o mal formado</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token expirado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La sesión ha expirado",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usuario no tiene sesión activa</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No existe una sesión activa para el usuario",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al cerrar sesiones de chats</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error en la salida del usuario",
+  "error": {
+    "chats": "No se pudieron cerrar todas las sesiones"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Error interno del servidor",
+  "error": {}
+}
+
+</code></pre>
+                </div>
+            </div>
+
+            <!-- Perfil -->
+            <div id="perfil" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-user"></i> Perfil</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/perfil
+                </div>
+
+                <p class="lead">
+                    Obtiene la información del perfil del usuario autenticado.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "token": "STRING"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> El token también puede enviarse en el header <code>Authorization: Bearer &lt;token&gt;</code>
+                </div>
+
+                <!-- Interactive form for Perfil -->
+                <form id="form-perfil" class="mb-3" onsubmit="handlePerfil(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token de usuario</label>
+                        <input id="perfil-token" name="token" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-perfil-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-perfil')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-perfil">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>token</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe ser válido y no estar expirado<br>
+                                • Debe corresponder a un usuario con sesión activa y existente
+                                
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Datos devueltos correctamente",
+  "data": {
+    "nombre": "Juan Pérez",
+    "localización": "40.7128, -74.0060",
+    "imagenAvatar": "https://example.com/avatar.jpg",
+    "biografia": "Desarrollador web apasionado",
+    "fechaCreacion": "2024-01-15 10:30:00"
+  }
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Token no enviado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token de usuario requerido",
+  "error": {
+    "tokenUsuario": "Campo obligatorio"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o mal formado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token expirado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La sesión ha expirado",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usaurio no encontrado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Usuario no encontrado",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al recuperar los datos del Usaurio</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No se han podido recuperar los datos del usuario",
+  "error": {
+    "data": "Error al consultar la base de datos"
+  }
+}
+
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}
+
+</code></pre>
+                </div>
+            </div>
+
+            <!-- Editar Perfil -->
+            <div id="editar-perfil" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-user-edit"></i> Editar Perfil</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/perfil/editar
+                </div>
+
+                <p class="lead">
+                    Actualiza la información del perfil del usuario autenticado, incluyendo nombre, avatar, biografía y contraseña.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "tokenUsuario": "STRING",
+  "nombre": "STRING",
+  "avatar": "STRING",
+  "biografia": "STRING",
+  "passwordActual": "STRING",
+  "passwordNueva": "STRING"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> El token también puede enviarse en el header <code>Authorization: Bearer &lt;token&gt;</code>. Todos los campos son opcionales excepto el token. Para cambiar la contraseña, se requieren tanto <code>passwordActual</code> como <code>passwordNueva</code>.
+                </div>
+
+                <!-- Interactive form for Editar Perfil -->
+                <form id="form-editar-perfil" class="mb-3" onsubmit="handleEditarPerfil(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario</label>
+                        <input id="editar-perfil-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Nombre (opcional)</label>
+                        <input id="editar-perfil-nombre" name="nombre" type="text" class="form-control" placeholder="Juan Pérez">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Avatar (opcional)</label>
+                        <input id="editar-perfil-avatar" name="avatar" type="text" class="form-control" placeholder="https://example.com/avatar.jpg">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Biografía (opcional)</label>
+                        <textarea id="editar-perfil-biografia" name="biografia" class="form-control" rows="3" placeholder="Desarrollador web apasionado por la tecnología..."></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Contraseña actual (opcional)</label>
+                        <input id="editar-perfil-password-actual" name="passwordActual" type="password" class="form-control" placeholder="Contraseña actual">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Nueva contraseña (opcional)</label>
+                        <input id="editar-perfil-password-nueva" name="passwordNueva" type="password" class="form-control" placeholder="Nueva contraseña (mínimo 8 caracteres)">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-editar-perfil-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-editar-perfil')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-editar-perfil">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • 64 caracteres hexadecimales<br>
+                                • Debe corresponder a un usuario con sesión activa
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>nombre</code> <span class="badge-optional">OPCIONAL</span></td>
+                            <td>
+                                • Cadena de texto<br>
+                                • Se actualizará solo si se proporciona
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>avatar</code> <span class="badge-optional">OPCIONAL</span></td>
+                            <td>
+                                • Cadena de texto (URL o base64)<br>
+                                • Se actualizará solo si se proporciona
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>biografia</code> <span class="badge-optional">OPCIONAL</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                                • Se actualizará solo si se proporciona
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>passwordActual</code> <span class="badge-conditional">CONDICIONAL</span></td>
+                            <td>
+                                • Obligatorio si se proporciona passwordNueva<br>
+                                • Debe coincidir con la contraseña actual del usuario
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>passwordNueva</code> <span class="badge-conditional">CONDICIONAL</span></td>
+                            <td>
+                                • Obligatorio si se proporciona passwordActual<br>
+                                • Mínimo 8 caracteres
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Datos actualizados correctamente",
+  "data": {}
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Token de usuario requerido (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token de usuario requerido",
+  "error": {
+    "tokenUsuario": "Campo obligatorio"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o expirado (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido o expirado",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Contraseña incorrecta (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Contraseña incorrecta",
+  "error": {
+    "passwordActual": "No coincide con la registrada"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Nueva contraseña no cumple requisitos (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La nueva contraseña no cumple con los requisitos",
+  "error": {
+    "passwordNueva": "Debe tener al menos 8 caracteres"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Biografía demasiado larga (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La biografía excede la longitud permitida",
+  "error": {
+    "biografia": "Máximo 255 caracteres"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usuario no encontrado (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Usuario no encontrado",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al guardar cambios (409 Conflict)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No se pudieron actualizar los datos del usuario",
+  "error": {
+    "data": "Error al persistir la información"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Datos actualizados correctamente",
+  "data": {}
+}
+</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Token no valido </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token de usuario requerido",
+  "error": {
+    "tokenUsuario": "Campo obligatorio"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o expirado </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido o expirado",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Contraseña actual incorrecta </strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Contraseña incorrecta",
+  "error": {
+    "passwordActual": "No coincide con la registrada"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Nueva contraseña no cumple requisitos</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La nueva contraseña no cumple con los requisitos",
+  "error": {
+    "passwordNueva": "Debe tener al menos 8 caracteres"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Biografía demasiado larga</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La biografía excede la longitud permitida",
+  "error": {
+    "biografia": "Máximo 255 caracteres"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usuario no encontrado</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Usuario no encontrado",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al actualizar los datos</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No se pudieron actualizar los datos del usuario",
+  "error": {
+    "data": "Error al persistir la información"
+  }
+}
+
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}
+
+</code></pre>
+                </div>
+            </div>
+
+            <!-- Home -->
+            <div id="home" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-home"></i> Home</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Publico
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/home
+                </div>
+
+                <p class="lead">
+                    Actualiza la ubicación del usuario y devuelve usuarios cercanos disponibles para chatear junto con invitaciones pendientes.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "tokenUsuario": "STRING",
+  "latitud": NUMBER,
+  "longitud": NUMBER
+}</code></pre>
+                </div>
+
+                <!-- Interactive form for Home -->
+                <form id="form-home" class="mb-3" onsubmit="handleHome(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token de usuario</label>
+                        <input id="home-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Latitud</label>
+                        <input id="home-latitud" name="latitud" type="number" step="0.000001" class="form-control" placeholder="40.7128">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Longitud</label>
+                        <input id="home-longitud" name="longitud" type="number" step="0.000001" class="form-control" placeholder="-74.0060">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-home-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-home')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-home">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe ser válido y no estar expirado<br>
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>latitud</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Rango recomendado: -90 y 90<br>
+                                • Valor numérico válido
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>longitud</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Rango recomendado: -180 a 180<br>
+                                • Valor numérico valido
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Usuarios cargados correctamente",
+  "data": {
+    "usuarios": [
+      {
+        "id": 2,
+        "nombre": "María García",
+        "distancia": 2.3,
+        "imagenAvatar": "https://example.com/avatar2.jpg"
+      },
+      {
+        "id": 3,
+        "nombre": "Carlos López",
+        "distancia": 3.8,
+        "imagenAvatar": "https://example.com/avatar3.jpg"
+      }
+    ],
+    "invitaciones": [
+      {
+        "id": 1,
+        "remitente": "Ana Martínez",
+        "mensaje": "¿Quieres chatear?",
+        "fecha": "2024-01-15 10:30:00"
+      }
+    ]
+  }
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["tokenUsuario", "latitud", "longitud"]
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token de usuario inválido",
+  "error": null
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Coordenadas GPS inválidas (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Coordenadas GPS inválidas",
+  "error": {
+    "latitud": "Debe estar entre -90 y 90",
+    "longitud": "Debe estar entre -180 y 180"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Actualizar -->
+            <div id="actualizar" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-sync-alt"></i> Actualizar</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Publico
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/actualizar
+                </div>
+
+                <p class="lead">
+                    Endpoint genérico para actualizaciones. Maneja dos casos principales: actualización de ubicación (desde Home) o actualización de chats (mensajes nuevos).
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Casos de uso
+                </h3>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> Este endpoint maneja dos tipos diferentes de actualizaciones. Envía diferentes parámetros según el caso de uso.
+                </div>
+
+                <h4><strong>Caso A: Actualización desde Home (Geolocalización)</strong></h4>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request - Geolocalización</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "tokenUsuario": "STRING",
+  "geolocalizacion": {
+    "latitud": NUMBER,
+    "longitud": NUMBER
+  }
+}</code></pre>
+                </div>
+
+                <h4><strong>Caso B: Actualización de Chat</strong></h4>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request - Chat</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "tokenUsuario": "STRING",
+  "id_Chat": NUMBER,
+  "id_ultimoMensaje": NUMBER
+}</code></pre>
+                </div>
+
+                <!-- Interactive form for Actualizar -->
+                <form id="form-actualizar" class="mb-3" onsubmit="handleActualizar(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token de usuario</label>
+                        <input id="actualizar-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de actualización</label>
+                        <select id="actualizar-tipo" class="form-control" onchange="toggleActualizarFields()">
+                            <option value="geolocalizacion">Geolocalización (Home)</option>
+                            <option value="chat">Actualización de Chat</option>
+                        </select>
+                    </div>
+                    
+                    <div id="fields-geolocalizacion">
+                        <div class="mb-2">
+                            <label class="form-label">Latitud</label>
+                            <input id="actualizar-latitud" name="latitud" type="number" step="0.000001" class="form-control" placeholder="40.7128">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Longitud</label>
+                            <input id="actualizar-longitud" name="longitud" type="number" step="0.000001" class="form-control" placeholder="-74.0060">
+                        </div>
+                    </div>
+                    
+                    <div id="fields-chat" style="display:none;">
+                        <div class="mb-2">
+                            <label class="form-label">ID del Chat</label>
+                            <input id="actualizar-id-chat" name="id_Chat" type="number" class="form-control" placeholder="1">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">ID del Último Mensaje</label>
+                            <input id="actualizar-id-ultimo" name="id_ultimoMensaje" type="number" class="form-control" placeholder="100">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-actualizar-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-actualizar')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-actualizar">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe ser válido y no estar expirado<br>
+                                • 
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>geolocalizacion</code> <span class="badge-conditional">OBLIGATORIO PARA EL HOME</span></td>
+                            <td>
+                                • Puede ser null si solo se actualizan chats<br>
+                                • Siempre se usa para actualizar la ubicación del usuario
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>latitud</code> <span class="badge-conditional">CONDICIONAL</span></td>
+                            <td>
+                                • Número decimal entre -90 y 90<br>
+                                • Requerido cuando se envía geolocalizacion
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>longitud</code> <span class="badge-conditional">CONDICIONAL</span></td>
+                            <td>
+                                • Número decimal entre -180 y 180<br>
+                                • Requerido cuando se envía geolocalizacion
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>id_Chat</code> <span class="badge-conditional">OBLIGATORIO PARA ACTUALIZAR MENSAJES</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Requerido para actualización de chat
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>id_ultimoMensaje</code> <span class="badge-conditional">OBLIGATORIO PARA ACTUALIZAR MENSAJES</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Requerido para actualización de chat
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuestas exitosas
+                </h3>
+
+                <h4><strong>Caso A: Actualización de Chat (200 OK)</strong></h4>
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Mensajes cargados correctamente",
+  "data": {
+    "usuarios": [
+      {"id": 22, "nombre": "Pedro"}
+    ],
+    "mensajes": [
+      {"id": 105, "contenido": "Hola 👋", "fecha": "2026-01-29T18:32:10"}
+    ],
+    "invitaciones": [
+      {"id": 9, "usuarioOrigen": "María"}
+    ]
+  }
+}
+</code></pre>
+                </div>
+
+                <h4><strong>Caso B: Actualización de Home (200 OK)</strong></h4>
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Usuarios cargados correctamente",
+  "data": {
+    "usuarios": [
+      {"id": 12, "nombre": "Ana", "distanciaKm": 1.8},
+      {"id": 34, "nombre": "Carlos", "distanciaKm": 4.6}
+    ],
+    "invitaciones": [
+      {"id": 7, "usuarioOrigen": "Lucía"}
+    ]
+  }
+}
+</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Token invalido o expirado (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401  Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token de usuario inválido",
+  "error": null
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>El chat no existe(404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El chat no existe",
+  "error": { "id_Chat": "INTEGER" }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Datos incompletos(400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": { "fields": ["tokenUsuario", "id_Chat", "id_ultimoMensaje"] }
+}
+
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Sin permisos en el chat (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No tienes permisos para acceder a este chat",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al cargar los datos  (409 Conflict)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 409 Conflict
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No se pudieron cargar los datos solicitados",
+  "error": { "data": "Error en la consulta" }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Invitar -->
+            <div id="invitar" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-user-plus"></i> Invitar</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Publico/Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/invitacion
+                </div>
+
+                <p class="lead">
+                    Envía una invitación a un usuario para unirse a un chat específico.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "tokenUsuario": "STRING",
+  "tokenUsuarioInvitado": "STRING",
+  "idChat": "STRING",
+  "mensaje": "STRING"
+}
+</code></pre>
+                </div>
+
+                <!-- Interactive form for Invitar -->
+                <form id="form-invitar" class="mb-3" onsubmit="handleInvitar(event)">
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario remitente</label>
+                        <input id="invitar-token-remitente" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario invitado</label>
+                        <input id="invitar-token-invitado" name="tokenUsuarioInvitado" type="text" class="form-control" placeholder="def789ghi012...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">ID del Chat</label>
+                        <input id="invitar-id-chat" name="idChat" type="number" class="form-control" placeholder="1">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Mensaje de invitación</label>
+                        <textarea id="invitar-mensaje" name="mensaje" class="form-control" rows="3" placeholder="¡Hola! Me gustaría que te unas a este chat..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-invitar-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-invitar')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-invitar">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe corresponder a un usuario con sesión activa o debe existir
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>tokenUsuarioInvitado</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Debe ser un token válido de un usuario activo
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>idChat</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Debe corresponder a un chat existente
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>mensaje</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Invitación creada",
+  "data": {
+    "tokenUsuario": "TOKEN_DEL_EMISOR",
+    "tokenUsuarioInvitado": "TOKEN_DEL_INVITADO",
+    "idChat": "ID_DEL_CHAT"
+  }
+}
+</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong> Datos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["tokenUsuario", "tokenUsuarioInvitado", "idChat", "mensaje"]
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token del usuario inválido (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token del usuario inválido",
+  "error": {}
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Usuario invitado no válido (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El usuario invitado no existe o no está activo",
+  "error": {
+    "tokenUsuarioInvitado": "No válido"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Chat no existe (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El chat no existe",
+  "error": {
+    "idChat": "No válido"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Mensaje excede longitud máxima (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El mensaje excede la longitud máxima",
+  "error": {
+    "mensaje": "Máximo 255 caracteres"
+  }
+}
+</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Mensaje -->
+            <div id="mensaje" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-comment"></i> Mensaje</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/mensaje
+                </div>
+
+                <p class="lead">
+                    Envía un mensaje de texto (y opcionalmente una imagen) a un chat específico.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "chat_id": NUMBER,
+  "Contenido": "STRING",
+  "tokenUsuario": "STRING",
+  "Imagen": "STRING (opcional)"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> La imagen debe enviarse en formato base64 si se incluye.
+                </div>
+
+                <!-- Interactive form for Mensaje -->
+                <form id="form-mensaje" class="mb-3" onsubmit="handleMensaje(event)">
+                    <div class="mb-2">
+                        <label class="form-label">ID del Chat</label>
+                        <input id="mensaje-chat-id" name="chat_id" type="number" class="form-control" placeholder="1">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Contenido del mensaje</label>
+                        <textarea id="mensaje-contenido" name="Contenido" class="form-control" rows="3" placeholder="¡Hola! ¿Cómo estás?"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario</label>
+                        <input id="mensaje-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Imagen (opcional - base64)</label>
+                        <textarea id="mensaje-imagen" name="Imagen" class="form-control" rows="2" placeholder="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-mensaje-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-mensaje')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-mensaje">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>chat_id</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Debe corresponder a un chat existente<br>
+                                • El usuario debe ser miembro del chat
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>Contenido</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Máximo 255 caracteres<br>
+                                • No puede estar vacío
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • 64 caracteres hexadecimales<br>
+                                • Debe corresponder a un usuario con sesión activa
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>Imagen</code> <span class="badge-optional">OPCIONAL</span></td>
+                            <td>
+                                • Formato base64 válido<br>
+                                • Máximo 12 MB (aproximadamente 16 millones de caracteres)<br>
+                                • Debe incluir el prefijo de tipo MIME
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Mensaje enviado",
+  "data": {
+    "mensaje_id": 123,
+    "fecha": "2024-01-15T14:30:00",
+    "tokenUsuario": "abc123def456..."
+  }
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["chat_id", "Contenido", "tokenUsuario"]
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token del usuario inválido (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token del usuario inválido",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Chat no existe (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El chat no existe",
+  "error": {
+    "chat_id": "No válido"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>No tienes permisos para enviar mensajes (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No tienes permisos para enviar mensajes en este chat",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Mensaje excede longitud máxima (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El mensaje excede la longitud máxima permitida",
+  "error": {
+    "mensaje": "Máximo 255 caracteres"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Imagen excede tamaño máximo (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "La imagen excede el tamaño máximo permitido",
+  "error": {
+    "Imagen": "Máximo 12 MB"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error al enviar mensaje (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Error al enviar mensaje",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Salir Chat -->
+            <div id="salir-chat" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-sign-out-alt"></i> Salir Chat</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/chat/salir
+                </div>
+
+                <p class="lead">
+                    Permite a un usuario salir de un chat específico. No se puede salir del chat general.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "chat_id": NUMBER,
+  "tokenUsuario": "STRING"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> El token también puede enviarse en el header <code>Authorization: Bearer &lt;token&gt;</code>. Al salir del chat, se eliminan automáticamente todos los mensajes enviados por el usuario en ese chat.
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Importante:</strong> No se puede salir del chat general.
+                </div>
+
+                <!-- Interactive form for Salir Chat -->
+                <form id="form-salir-chat" class="mb-3" onsubmit="handleSalirChat(event)">
+                    <div class="mb-2">
+                        <label class="form-label">ID del Chat</label>
+                        <input id="salir-chat-id" name="chat_id" type="number" class="form-control" placeholder="1">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario</label>
+                        <input id="salir-chat-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-salir-chat-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-salir-chat')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-salir-chat">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>chat_id</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Debe corresponder a un chat existente<br>
+                                • No puede ser el chat general<br>
+                                • El usuario debe ser miembro del chat
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • 64 caracteres hexadecimales<br>
+                                • Debe corresponder a un usuario con sesión activa
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Has salido del chat",
+  "data": {}
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["chat_id"]
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o expirado (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido o expirado",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Chat no existe (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El chat no existe",
+  "error": {
+    "chat_id": "No válido"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>No puedes salir del chat general (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No puedes salir del chat general",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>No puedes salir de un chat al que no perteneces (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No puedes salir de un chat al que no perteneces",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Cambiar Chat -->
+            <div id="cambiar-chat" class="endpoint-card">
+                <div class="endpoint-header">
+                    <h2 class="endpoint-title"><i class="fas fa-exchange-alt"></i> Cambiar Chat</h2>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="access-badge access-private">
+                        <i class="fas fa-lock"></i> Privado
+                    </span>
+                </div>
+                
+                <div class="endpoint-path">
+                    <i class="fas fa-link"></i> /api/chat/cambiarchat
+                </div>
+
+                <p class="lead">
+                    Permite a un usuario cambiar del chat actual a otro chat al que ya pertenece.
+                </p>
+
+                <h3 class="section-title">
+                    <i class="fas fa-download"></i> Datos de la llamada (Request)
+                </h3>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Request</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "chat_id_nuevo": NUMBER,
+  "tokenUsuario": "STRING"
+}</code></pre>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> El token también puede enviarse en el header <code>Authorization: Bearer &lt;token&gt;</code>. El usuario debe estar actualmente en algún chat y debe pertenecer al chat de destino.
+                </div>
+
+                <!-- Interactive form for Cambiar Chat -->
+                <form id="form-cambiar-chat" class="mb-3" onsubmit="handleCambiarChat(event)">
+                    <div class="mb-2">
+                        <label class="form-label">ID del Chat Nuevo</label>
+                        <input id="cambiar-chat-id" name="chat_id_nuevo" type="number" class="form-control" placeholder="2">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Token del usuario</label>
+                        <input id="cambiar-chat-token" name="tokenUsuario" type="text" class="form-control" placeholder="abc123def456...">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generar respuesta</button>
+                </form>
+
+                <div class="code-block response-block" style="display:block;">
+                    <div class="code-header">
+                        <span class="code-title">Respuesta Generada</span>
+                        <div>
+                            <span id="resp-cambiar-chat-status" class="response-badge" style="display:none"></span>
+                            <button class="copy-btn" onclick="copyResponse('resp-cambiar-chat')"><i class="fas fa-copy"></i> Copiar</button>
+                        </div>
+                    </div>
+                    <pre><code class="language-json" id="resp-cambiar-chat">{}
+                    </code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check-circle"></i> Reglas de validación
+                </h3>
+                
+                <table class="validation-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Requisitos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>chat_id_nuevo</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • Número entero positivo<br>
+                                • Debe corresponder a un chat existente<br>
+                                • El usuario debe pertenecer a este chat<br>
+                                • No puede ser el mismo chat actual
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>tokenUsuario</code> <span class="badge-required">OBLIGATORIO</span></td>
+                            <td>
+                                • 64 caracteres hexadecimales<br>
+                                • Debe corresponder a un usuario con sesión activa<br>
+                                • El usuario debe estar actualmente en algún chat
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 class="section-title">
+                    <i class="fas fa-check"></i> Respuesta exitosa (200 OK)
+                </h3>
+                
+                <span class="response-badge response-success">
+                    <i class="fas fa-check-circle"></i> 200 OK
+                </span>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": true,
+  "message": "Has cambiado de chat",
+  "data": {}
+}</code></pre>
+                </div>
+
+                <h3 class="section-title">
+                    <i class="fas fa-times-circle"></i> Respuestas fallidas
+                </h3>
+
+                <h5 class="mt-4"><strong>Campos obligatorios faltantes (400 Bad Request)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 400 Bad Request
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Datos incompletos",
+  "error": {
+    "fields": ["chat_id_nuevo"]
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Token inválido o expirado (401 Unauthorized)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 401 Unauthorized
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Token inválido o expirado",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>No estás en ningún chat activo (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No puedes cambiar de chat porque no estás en ningún chat activo",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Chat no existe (404 Not Found)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 404 Not Found
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "El chat al que intentas cambiar no existe",
+  "error": {
+    "chat_id_nuevo": "No válido"
+  }
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>No perteneces a este chat (403 Forbidden)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 403 Forbidden
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "No perteneces a este chat",
+  "error": {}
+}</code></pre>
+                </div>
+
+                <h5 class="mt-4"><strong>Error interno del servidor (500 Internal Server Error)</strong></h5>
+                <span class="response-badge response-error">
+                    <i class="fas fa-exclamation-circle"></i> 500 Internal Server Error
+                </span>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-title">JSON Response</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <pre><code class="language-json">{
+  "success": false,
+  "message": "Ha ocurrido un error al cambiar de chat",
+  "error": {}
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Documentación completa - Todos los endpoints implementados
             
         </div>
     </div>

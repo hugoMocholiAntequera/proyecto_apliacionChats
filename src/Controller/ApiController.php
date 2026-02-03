@@ -453,6 +453,173 @@ final class ApiController extends AbstractController
         }
     }
 
+    /*ENDPOINT API EDITAR PERFIL* */
+    #[Route('/api/perfil/editar', name: 'app_api_editar_perfil', methods: ['POST'])]
+    public function editarPerfil(Request $request, UserRepository $userRepo, UserPasswordHasherInterface $hasher, EntityManagerInterface $em): JsonResponse
+    {
+        try {
+            $content = $request->getContent();
+            if (empty($content)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Token de usuario requerido',
+                    'error' => [
+                        'tokenUsuario' => 'Campo obligatorio'
+                    ]
+                ], 400);
+            }
+
+            $data = json_decode($content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Token de usuario requerido',
+                    'error' => [
+                        'tokenUsuario' => 'Campo obligatorio'
+                    ]
+                ], 400);
+            }
+
+            // Obtener el token del header Authorization o del body
+            $token = null;
+            $authHeader = $request->headers->get('Authorization');
+            if ($authHeader && str_starts_with($authHeader, 'Bearer ')) {
+                $token = substr($authHeader, 7);
+            } else {
+                if (isset($data['tokenUsuario'])) {
+                    $token = trim($data['tokenUsuario']);
+                }
+            }
+
+            // Validar que el token fue proporcionado (400 Bad Request)
+            if (empty($token)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Token de usuario requerido',
+                    'error' => [
+                        'tokenUsuario' => 'Campo obligatorio'
+                    ]
+                ], 400);
+            }
+
+            // Validar formato del token (401 Unauthorized)
+            if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Token inválido o expirado',
+                    'error' => (object)[]
+                ], 401);
+            }
+
+            // Buscar usuario
+            $user = $userRepo->findOneBy(['token' => $token]);
+            if (!$user instanceof User) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Usuario no encontrado',
+                    'error' => (object)[]
+                ], 404);
+            }
+
+            // Obtener los campos a actualizar
+            $nombre = isset($data['nombre']) ? trim($data['nombre']) : null;
+            $avatar = isset($data['avatar']) ? trim($data['avatar']) : null;
+            $biografia = isset($data['biografia']) ? trim($data['biografia']) : null;
+            $passwordActual = isset($data['passwordActual']) ? $data['passwordActual'] : null;
+            $passwordNueva = isset($data['passwordNueva']) ? $data['passwordNueva'] : null;
+
+            // Validar biografía (máximo 255 caracteres)
+            if ($biografia !== null && strlen($biografia) > 255) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'La biografía excede la longitud permitida',
+                    'error' => [
+                        'biografia' => 'Máximo 255 caracteres'
+                    ]
+                ], 400);
+            }
+
+            // Si se quiere cambiar contraseña, validar passwordActual y passwordNueva
+            if ($passwordNueva !== null) {
+                // Validar que se proporcionó passwordActual
+                if ($passwordActual === null) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Contraseña incorrecta',
+                        'error' => [
+                            'passwordActual' => 'No coincide con la registrada'
+                        ]
+                    ], 401);
+                }
+
+                // Validar que passwordActual es correcta
+                if (!$hasher->isPasswordValid($user, $passwordActual)) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Contraseña incorrecta',
+                        'error' => [
+                            'passwordActual' => 'No coincide con la registrada'
+                        ]
+                    ], 401);
+                }
+
+                // Validar requisitos de passwordNueva (mínimo 8 caracteres)
+                if (strlen($passwordNueva) < 8) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'La nueva contraseña no cumple con los requisitos',
+                        'error' => [
+                            'passwordNueva' => 'Debe tener al menos 8 caracteres'
+                        ]
+                    ], 400);
+                }
+
+                // Hash de la nueva contraseña
+                $hashedPassword = $hasher->hashPassword($user, $passwordNueva);
+                $user->setPassword($hashedPassword);
+            }
+
+            // Actualizar campos opcionales
+            if ($nombre !== null) {
+                $user->setNombre($nombre);
+            }
+            if ($avatar !== null) {
+                $user->setAvatar($avatar);
+            }
+            if ($biografia !== null) {
+                $user->setBiografia($biografia);
+            }
+
+            // Intentar guardar cambios
+            try {
+                $em->persist($user);
+                $em->flush();
+
+                return $this->json([
+                    'success' => true,
+                    'message' => 'Datos actualizados correctamente',
+                    'data' => (object)[]
+                ], 200);
+
+            } catch (\Exception $e) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'No se pudieron actualizar los datos del usuario',
+                    'error' => [
+                        'data' => 'Error al persistir la información'
+                    ]
+                ], 409);
+            }
+
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Ha ocurrido un error',
+                'error' => (object)[]
+            ], 500);
+        }
+    }
+
     /*ENDPOINT API HOME* */
     #[Route('/api/home', name: 'app_api_home', methods: ['POST'])]
     public function home(Request $request, UserRepository $userRepo, EntityManagerInterface $em): JsonResponse
@@ -1320,5 +1487,7 @@ final class ApiController extends AbstractController
             ], 500);
         }
     }
+
+
 
 }
