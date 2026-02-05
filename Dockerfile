@@ -50,5 +50,5 @@ RUN php bin/console asset-map:compile || true
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de inicio
-CMD ["./start.sh"]
+# Comando de inicio usando ENTRYPOINT
+ENTRYPOINT ["/bin/sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public"]
