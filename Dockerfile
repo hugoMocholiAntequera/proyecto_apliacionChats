@@ -31,6 +31,9 @@ RUN npm install
 # Copiar el resto de la aplicación
 COPY . .
 
+# Hacer el script ejecutable
+RUN chmod +x start.sh
+
 # Variables de entorno por defecto
 ENV APP_ENV=prod
 
@@ -48,4 +51,4 @@ RUN php bin/console asset-map:compile || true
 EXPOSE 8080
 
 # Comando de inicio
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public"]
+CMD ["./start.sh"]
