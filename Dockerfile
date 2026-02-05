@@ -36,6 +36,7 @@ RUN chmod +x start.sh
 
 # Variables de entorno por defecto
 ENV APP_ENV=prod
+ENV PORT=8080
 
 # Generar archivos de entorno optimizados
 RUN composer dump-env prod || true
