@@ -1,8 +1,0 @@
-.git
-.gitignore
-var/cache/*
-var/log/*
-node_modules
-vendor
-.env.local
-.env.*.local

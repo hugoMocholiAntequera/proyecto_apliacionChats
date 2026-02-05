@@ -1,5 +1,8 @@
 FROM php:8.2-cli
 
+# Rebuild forzado - cambio de versión
+RUN echo "Force rebuild v2"
+
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     git \
