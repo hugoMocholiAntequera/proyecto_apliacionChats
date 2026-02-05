@@ -42,5 +42,5 @@ RUN php bin/console asset-map:compile || true
 # Exponer puerto
 EXPOSE 8080
 
-# Comando directo sin scripts externos
-CMD php -S 0.0.0.0:${PORT} -t public
+# Usar shell form para que expanda variables
+CMD /bin/sh -c "php -S 0.0.0.0:${PORT} -t public"
