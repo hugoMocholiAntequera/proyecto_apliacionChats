@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Repository\UserRepository;
+use App\Repository\ApiKeysRepository;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use App\Entity\User;
 use App\Entity\Chats;
@@ -34,16 +35,7 @@ final class ApiController extends AbstractController
 
     /*ENDPOINT API CONEXION* */
     #[Route('/api/conexion', name: 'app_api_conexion', methods: ['POST'])]
-    public function conexion(): Response   
-    {
-        return $this->json([
-            'message' => 'Conexión API exitosa',
-            'status' => 200,
-            'success' => true,
-            'data' => null,
-            'error' => "No se ha podido establecer conexión con la API"
-        ]);
-    }
+  
 
     /*ENDPOINT API LOGIN* */
     #[Route('/api/login', name: 'app_api_login', methods: ['POST'])]
@@ -200,19 +192,11 @@ final class ApiController extends AbstractController
                 ], 400);
             }
 
-            // Validar contraseña: mínimo 8 caracteres, al menos 1 mayúscula y 1 número
+            // Validar contraseña: mínimo 8 caracteres,
             $passwordErrors = [];
             
             if (strlen($password) < 8) {
                 $passwordErrors[] = 'Debe tener al menos 8 caracteres';
-            }
-            
-            if (!preg_match('/[A-Z]/', $password)) {
-                $passwordErrors[] = 'Debe contener al menos una letra mayúscula';
-            }
-            
-            if (!preg_match('/[0-9]/', $password)) {
-                $passwordErrors[] = 'Debe contener al menos un número';
             }
             
             if (!empty($passwordErrors)) {
@@ -474,7 +458,7 @@ final class ApiController extends AbstractController
     }
 
     /*ENDPOINT API EDITAR PERFIL* */
-    #[Route('/api/perfil/editar', name: 'app_api_editar_perfil', methods: ['POST'])]
+    #[Route('/api/perfil/editar', name: 'app_api_editar_perfil', methods: ['PUT'])]
     public function editarPerfil(Request $request, UserRepository $userRepo, UserPasswordHasherInterface $hasher, EntityManagerInterface $em): JsonResponse
     {
         try {
@@ -511,34 +495,48 @@ final class ApiController extends AbstractController
                 }
             }
 
-            // Validar que el token fue proporcionado (400 Bad Request)
+            // Si no se proporciona token, permitir buscar por 'nombre'
+            $user = null;
             if (empty($token)) {
-                return $this->json([
-                    'success' => false,
-                    'message' => 'Token de usuario requerido',
-                    'error' => [
-                        'tokenUsuario' => 'Campo obligatorio'
-                    ]
-                ], 400);
-            }
+                $nombreSearch = isset($data['nombre']) ? trim($data['nombre']) : null;
+                if (empty($nombreSearch)) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Token de usuario requerido',
+                        'error' => [
+                            'tokenUsuario' => 'Campo obligatorio'
+                        ]
+                    ], 400);
+                }
 
-            // Validar formato del token (401 Unauthorized)
-            if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
-                return $this->json([
-                    'success' => false,
-                    'message' => 'Token inválido o expirado',
-                    'error' => (object)[]
-                ], 401);
-            }
+                // Buscar usuario por nombre
+                $user = $userRepo->findOneBy(['nombre' => $nombreSearch]);
+                if (!$user instanceof User) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Usuario no encontrado',
+                        'error' => (object)[]
+                    ], 404);
+                }
+            } else {
+                // Validar formato del token (401 Unauthorized)
+                if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Token inválido o expirado',
+                        'error' => (object)[]
+                    ], 401);
+                }
 
-            // Buscar usuario
-            $user = $userRepo->findOneBy(['token' => $token]);
-            if (!$user instanceof User) {
-                return $this->json([
-                    'success' => false,
-                    'message' => 'Usuario no encontrado',
-                    'error' => (object)[]
-                ], 404);
+                // Buscar usuario por token
+                $user = $userRepo->findOneBy(['token' => $token]);
+                if (!$user instanceof User) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Usuario no encontrado',
+                        'error' => (object)[]
+                    ], 404);
+                }
             }
 
             // Obtener los campos a actualizar
