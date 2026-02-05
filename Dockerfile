@@ -48,8 +48,15 @@ RUN php bin/console cache:warmup --env=prod || true
 # Compilar assets
 RUN php bin/console asset-map:compile || true
 
+# Crear script de inicio con formato Unix correcto
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'PORT=${PORT:-8080}' >> /start.sh && \
+    echo 'echo "Starting PHP server on 0.0.0.0:$PORT"' >> /start.sh && \
+    echo 'exec php -S 0.0.0.0:$PORT -t /app/public' >> /start.sh && \
+    chmod +x /start.sh
+
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de inicio usando ENTRYPOINT
-ENTRYPOINT ["/bin/sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public"]
+# Comando de inicio
+CMD ["/start.sh"]
