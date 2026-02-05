@@ -20,7 +20,7 @@ WORKDIR /app
 
 # Copiar archivos de dependencias primero (para aprovechar cache de Docker)
 COPY composer.json composer.lock ./
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # Instalar dependencias de PHP (sin scripts)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
