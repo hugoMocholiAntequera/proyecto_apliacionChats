@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgs = ["php", "nginx", "libmysqlclient", "phpPackages.composer", "nodejs_18", "npm-9_x"]
+aptPkgs = []
 
 [phases.install]
 cmds = [
@@ -11,7 +12,8 @@ cmds = [
 [phases.build]
 cmds = [
     "composer dump-env prod",
-    "php bin/console cache:clear --env=prod --no-debug",
+    "php bin/console cache:clear --env=prod --no-debug --no-warmup",
+    "php bin/console cache:warmup --env=prod",
     "php bin/console asset-map:compile"
 ]
 
