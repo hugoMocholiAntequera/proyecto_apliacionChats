@@ -18,45 +18,29 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
 
 WORKDIR /app
 
-# Copiar archivos de dependencias primero (para aprovechar cache de Docker)
+# Copiar archivos de dependencias primero
 COPY composer.json composer.lock ./
 COPY package.json ./
 
-# Instalar dependencias de PHP (sin scripts)
+# Instalar dependencias
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
-
-# Instalar dependencias de Node
 RUN npm install
 
-# Copiar el resto de la aplicación
+# Copiar aplicación
 COPY . .
 
-# Hacer el script ejecutable
-RUN chmod +x start.sh
-
-# Variables de entorno por defecto
+# Variables de entorno
 ENV APP_ENV=prod
 ENV PORT=8080
 
-# Generar archivos de entorno optimizados
+# Build de la aplicación
 RUN composer dump-env prod || true
-
-# Limpiar y calentar el caché de Symfony en modo producción
 RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
-
-# Compilar assets
 RUN php bin/console asset-map:compile || true
-
-# Crear script de inicio con formato Unix correcto
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'PORT=${PORT:-8080}' >> /start.sh && \
-    echo 'echo "Starting PHP server on 0.0.0.0:$PORT"' >> /start.sh && \
-    echo 'exec php -S 0.0.0.0:$PORT -t /app/public' >> /start.sh && \
-    chmod +x /start.sh
 
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de inicio
-CMD ["/start.sh"]
+# Comando directo sin scripts externos
+CMD php -S 0.0.0.0:${PORT} -t public
