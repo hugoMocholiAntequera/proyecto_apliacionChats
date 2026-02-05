@@ -173,9 +173,15 @@ final class ApiController extends AbstractController
 
             // Validar longitud de campos
             $lengthErrors = [];
-            if (strlen($nombre) > 100) $lengthErrors['nombre'] = 'Longitud no permitida';
-            if (strlen($email) > 180) $lengthErrors['email'] = 'Longitud no permitida';
-            if (strlen($password) > 255) $lengthErrors['password'] = 'Longitud no permitida';
+            if (strlen($nombre) < 3 || strlen($nombre) > 155) {
+                $lengthErrors['nombre'] = 'Longitud no permitida';
+            }
+            if (strlen($email) > 180) {
+                $lengthErrors['email'] = 'Longitud no permitida';
+            }
+            if (strlen($password) > 255) {
+                $lengthErrors['password'] = 'Longitud no permitida';
+            }
 
             if (!empty($lengthErrors)) {
                 return $this->json([
