@@ -28,15 +28,11 @@ security:
                 path: app_logup
     
     access_control:
-        # Login debe ser accesible sin autenticación
+        # Página principal y API accesibles sin autenticación
+        - { path: ^/$, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: PUBLIC_ACCESS }
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/login_check$, roles: PUBLIC_ACCESS }
-        
-        
-        # Agrega aquí otras rutas públicas si las tienes
-        # - { path: ^/registro$, roles: PUBLIC_ACCESS }
-        # - { path: ^/$, roles: PUBLIC_ACCESS }  # Página principal
         
         # El resto requiere autenticación
         - { path: ^/, roles: IS_AUTHENTICATED_FULLY }

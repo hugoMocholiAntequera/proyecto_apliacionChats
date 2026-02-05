@@ -11,9 +11,8 @@ final class HomeController extends AbstractController
     #[Route('/', name: 'app_home')]
     public function index(): Response
     {
-        return $this->render('home/index.html.twig', [
-            'controller_name' => 'HomeController',
-        ]);
+        // Redirigir a la documentación de la API como página principal
+        return $this->redirectToRoute('app_api_docs');
     }
 
     #[Route('/welcome', name: 'app_welcome')]
