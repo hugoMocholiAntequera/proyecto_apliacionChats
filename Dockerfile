@@ -1,49 +1,33 @@
+# Build version 2.0 - Force rebuild
 FROM php:8.2-cli
 
-# Rebuild forzado - cambio de versión
-RUN echo "Force rebuild v2"
-
-# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
-    libicu-dev \
-    curl \
+    git unzip libzip-dev libicu-dev curl \
     && docker-php-ext-install pdo_mysql zip intl
 
-# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Instalar Node.js y npm
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs
 
 WORKDIR /app
 
-# Copiar archivos de dependencias primero
-COPY composer.json composer.lock ./
-COPY package.json ./
-
-# Instalar dependencias
+COPY composer.json composer.lock package.json ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 RUN npm install
 
-# Copiar aplicación
 COPY . .
 
-# Variables de entorno
 ENV APP_ENV=prod
-ENV PORT=8080
 
-# Build de la aplicación
 RUN composer dump-env prod || true
 RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
 RUN php bin/console asset-map:compile || true
 
-# Exponer puerto
 EXPOSE 8080
 
-# Hardcodear el puerto temporalmente para probar
-CMD ["/bin/sh", "-c", "echo 'Starting server on port 8080' && php -S 0.0.0.0:8080 -t public"]
+# Crear wrapper script directamente en el contenedor
+RUN printf '#!/bin/sh\nphp -S 0.0.0.0:8080 -t public\n' > /run.sh && chmod +x /run.sh
+
+CMD ["/run.sh"]
