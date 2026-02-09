@@ -1,4 +1,4 @@
-# Build version 3.0 - Force rebuild no cache - 2026-02-09
+# Build version 4.0 - Fix DATABASE_URL expansion - 2026-02-10
 FROM php:8.2-cli
 
 RUN apt-get update && apt-get install -y \

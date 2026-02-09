@@ -40,13 +40,6 @@ php bin/console doctrine:migrations:migrate --no-interaction || {
 }
 
 echo ""
-echo "--- Loading Fixtures ---"
-php bin/console doctrine:fixtures:load --no-interaction --append || {
-    echo "ERROR: Fixtures failed"
-    echo "Continuing anyway..."
-}
-
-echo ""
 echo "--- Starting PHP Server ---"
 echo "Server starting on 0.0.0.0:8080"
 exec php -S 0.0.0.0:8080 -t public
