@@ -20,7 +20,8 @@ COPY . .
 
 ENV APP_ENV=prod
 
-RUN composer dump-env prod || true
+# NO ejecutar dump-env para que use variables de Railway en runtime
+# RUN composer dump-env prod || true
 RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
 RUN php bin/console asset-map:compile || true

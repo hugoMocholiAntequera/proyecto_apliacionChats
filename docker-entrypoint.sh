@@ -5,6 +5,12 @@ echo "================================"
 echo "=== Starting Application ==="
 echo "================================"
 
+# Eliminar archivo de env cached si existe
+if [ -f ".env.local.php" ]; then
+    echo "Removing cached .env.local.php to use Railway env vars"
+    rm .env.local.php
+fi
+
 echo ""
 echo "--- Environment Check ---"
 echo "APP_ENV: ${APP_ENV}"
