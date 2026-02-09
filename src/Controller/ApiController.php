@@ -39,12 +39,29 @@ final class ApiController extends AbstractController
         $dbError = null;
         $chatGeneral = null;
         $chatError = null;
+        $debug = [];
+        
+        // Información de configuración
+        $debug['env'] = $_ENV['APP_ENV'] ?? 'not_set';
+        $debug['database_url_exists'] = isset($_ENV['DATABASE_URL']) ? 'yes' : 'no';
+        $debug['database_url_prefix'] = isset($_ENV['DATABASE_URL']) ? substr($_ENV['DATABASE_URL'], 0, 25) . '...' : 'not_set';
         
         try {
+            $connection = $em->getConnection();
+            $params = $connection->getParams();
+            $debug['driver'] = $params['driver'] ?? 'unknown';
+            $debug['host'] = $params['host'] ?? 'unknown';
+            $debug['port'] = $params['port'] ?? 'unknown';
+            $debug['dbname'] = $params['dbname'] ?? 'unknown';
+            $debug['unix_socket'] = isset($params['unix_socket']) ? $params['unix_socket'] : 'not_set';
+            
             $em->getConnection()->connect();
             $dbConnected = $em->getConnection()->isConnected();
         } catch (\Exception $e) {
             $dbError = $e->getMessage();
+            $debug['error_class'] = get_class($e);
+            $debug['error_file'] = $e->getFile();
+            $debug['error_line'] = $e->getLine();
         }
         
         try {
@@ -64,7 +81,8 @@ final class ApiController extends AbstractController
                 'chatGeneral' => $chatGeneral ? 'exists' : 'not found',
                 'chatError' => $chatError,
                 'timestamp' => (new \DateTime())->format('Y-m-d H:i:s')
-            ]
+            ],
+            'debug' => $debug
         ], $dbConnected ? 200 : 500);
     }
     

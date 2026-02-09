@@ -8,7 +8,16 @@ echo "================================"
 echo ""
 echo "--- Environment Check ---"
 echo "APP_ENV: ${APP_ENV}"
-echo "DATABASE_URL: ${DATABASE_URL:0:30}..." 
+echo "DATABASE_URL: ${DATABASE_URL:0:40}..." 
+echo "PHP Version: $(php -v | head -n 1)"
+
+echo ""
+echo "--- Testing Database Connection ---"
+php bin/console dbal:run-sql "SELECT 1 as test" || {
+    echo "ERROR: Cannot connect to database"
+    echo "Trying to get more details..."
+    php bin/console doctrine:database:create --if-not-exists || true
+}
 
 echo ""
 echo "--- Running Migrations ---"
