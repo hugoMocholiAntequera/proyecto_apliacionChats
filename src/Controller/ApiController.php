@@ -20,7 +20,39 @@ use DateTime;
 final class ApiController extends AbstractController
 {
 
-    var $apikey = "a9F3kL2Qx7M8PZcR4eVYH6B5NwD1JmU0tS";
+    private const API_KEY = "a9F3kL2Qx7M8PZcR4eVYH6B5NwD1JmU0tS";
+    
+    #[Route('/api/health', name: 'app_api_health', methods: ['GET'])]
+    public function health(EntityManagerInterface $em): JsonResponse
+    {
+        try {
+            // Verificar conexión a la base de datos
+            $em->getConnection()->connect();
+            $dbConnected = $em->getConnection()->isConnected();
+            
+            // Verificar si existe el chat general
+            $chatGeneral = $em->getRepository(Chats::class)->findOneBy(['esGeneral' => true]);
+            
+            return $this->json([
+                'success' => true,
+                'message' => 'API Health Check',
+                'data' => [
+                    'database' => $dbConnected ? 'connected' : 'disconnected',
+                    'chatGeneral' => $chatGeneral ? 'exists' : 'not found',
+                    'timestamp' => (new \DateTime())->format('Y-m-d H:i:s')
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Health check failed',
+                'error' => [
+                    'message' => $e->getMessage()
+                ]
+            ], 500);
+        }
+    }
+    
     #[Route('/api', name: 'app_api')]
     public function index(): Response
     {
@@ -63,7 +95,7 @@ final class ApiController extends AbstractController
         }
 
         $apikey = isset($data['apikey']) ? trim($data['apikey']) : null;
-        if ($apikey !== $this->apikey) {
+        if ($apikey !== self::API_KEY) {
             return $this->json([
                 'message' => 'Unauthorized '.$apikey,
                 'status' => 401,
@@ -306,6 +338,10 @@ final class ApiController extends AbstractController
             ], 201);
 
         } catch (\Exception $e) {
+            // Log the error for debugging
+            error_log('Register error: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            
             return $this->json([
                 'success' => false,
                 'message' => 'Error interno del servidor',

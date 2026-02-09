@@ -25,9 +25,15 @@ RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
 RUN php bin/console asset-map:compile || true
 
-EXPOSE 8080
+# Create a startup script that will run migrations and fixtures
+RUN printf '#!/bin/sh\n\
+echo "Running database migrations..."\n\
+php bin/console doctrine:migrations:migrate --no-interaction --env=prod || echo "Migration failed, continuing..."\n\
+echo "Loading fixtures..."\n\
+php bin/console doctrine:fixtures:load --no-interaction --env=prod --append || echo "Fixtures failed, continuing..."\n\
+echo "Starting PHP server on port 8080"\n\
+php -S 0.0.0.0:8080 -t public\n' > /run.sh && chmod +x /run.sh
 
-# Crear wrapper script directamente en el contenedor
-RUN printf '#!/bin/sh\nphp -S 0.0.0.0:8080 -t public\n' > /run.sh && chmod +x /run.sh
+EXPOSE 8080
 
 CMD ["/run.sh"]

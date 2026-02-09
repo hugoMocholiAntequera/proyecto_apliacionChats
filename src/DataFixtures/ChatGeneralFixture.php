@@ -13,7 +13,7 @@ class ChatGeneralFixture extends Fixture
     {
         // Verificar si ya existe el chat general
         $chatRepository = $manager->getRepository(Chats::class);
-        $existingChat = $chatRepository->findOneBy(['id' => 1]);
+        $existingChat = $chatRepository->findOneBy(['esGeneral' => true]);
 
         if (!$existingChat) {
             $chatGeneral = new Chats();
@@ -23,6 +23,10 @@ class ChatGeneralFixture extends Fixture
             
             $manager->persist($chatGeneral);
             $manager->flush();
+            
+            echo "Chat general creado exitosamente.\n";
+        } else {
+            echo "Chat general ya existe (ID: {$existingChat->getId()}).\n";
         }
     }
 }

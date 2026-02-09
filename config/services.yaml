@@ -22,3 +22,8 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # API Exception Listener - Convert API exceptions to JSON
+    App\EventListener\ApiExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException, priority: 100 }

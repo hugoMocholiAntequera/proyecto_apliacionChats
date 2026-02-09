@@ -1,12 +1,13 @@
 <?php
 // Script temporal para importar base de datos a Railway
 
-$host = 'hopper.proxy.rlwy.net';
-$port = 49930;
-$database = 'railway';
-$username = 'root';
-$password = 'jzgcFIVbXHUVeIVbhndvEnLVuWxaUhcc';
-$sqlFile = __DIR__ . '/chaty (1).sql';
+// Usar variables de entorno si están disponibles
+$host = getenv('DB_HOST') ?: 'hopper.proxy.rlwy.net';
+$port = getenv('DB_PORT') ?: 49930;
+$database = getenv('DB_DATABASE') ?: 'railway';
+$username = getenv('DB_USERNAME') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: 'CHANGE_ME';
+$sqlFile = __DIR__ . '/chaty(1).sql';
 
 echo "Conectando a Railway MySQL...\n";
 
