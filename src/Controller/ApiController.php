@@ -25,32 +25,37 @@ final class ApiController extends AbstractController
     #[Route('/api/health', name: 'app_api_health', methods: ['GET'])]
     public function health(EntityManagerInterface $em): JsonResponse
     {
+        $dbConnected = false;
+        $dbError = null;
+        $chatGeneral = null;
+        $chatError = null;
+        
         try {
-            // Verificar conexión a la base de datos
             $em->getConnection()->connect();
             $dbConnected = $em->getConnection()->isConnected();
-            
-            // Verificar si existe el chat general
-            $chatGeneral = $em->getRepository(Chats::class)->findOneBy(['esGeneral' => true]);
-            
-            return $this->json([
-                'success' => true,
-                'message' => 'API Health Check',
-                'data' => [
-                    'database' => $dbConnected ? 'connected' : 'disconnected',
-                    'chatGeneral' => $chatGeneral ? 'exists' : 'not found',
-                    'timestamp' => (new \DateTime())->format('Y-m-d H:i:s')
-                ]
-            ], 200);
         } catch (\Exception $e) {
-            return $this->json([
-                'success' => false,
-                'message' => 'Health check failed',
-                'error' => [
-                    'message' => $e->getMessage()
-                ]
-            ], 500);
+            $dbError = $e->getMessage();
         }
+        
+        try {
+            if ($dbConnected) {
+                $chatGeneral = $em->getRepository(Chats::class)->findOneBy(['esGeneral' => true]);
+            }
+        } catch (\Exception $e) {
+            $chatError = $e->getMessage();
+        }
+        
+        return $this->json([
+            'success' => $dbConnected,
+            'message' => $dbConnected ? 'API Health Check' : 'Database connection failed',
+            'data' => [
+                'database' => $dbConnected ? 'connected' : 'disconnected',
+                'databaseError' => $dbError,
+                'chatGeneral' => $chatGeneral ? 'exists' : 'not found',
+                'chatError' => $chatError,
+                'timestamp' => (new \DateTime())->format('Y-m-d H:i:s')
+            ]
+        ], $dbConnected ? 200 : 500);
     }
     
     #[Route('/api', name: 'app_api')]
@@ -163,7 +168,17 @@ final class ApiController extends AbstractController
             ], 422);
         }
 
-        $user = $userRepo->findOneBy(['email' => $email]);
+        try {
+            $user = $userRepo->findOneBy(['email' => $email]);
+        } catch (\Exception $e) {
+            error_log('Login DB error: ' . $e->getMessage());
+            return $this->json([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'error' => (object)[]
+            ], 500);
+        }
+        
         if (!$user instanceof User) {
             return $this->json([
                 'success' => false,
@@ -319,10 +334,14 @@ final class ApiController extends AbstractController
             $token = bin2hex(random_bytes(32));
             $newUser->setToken($token);
 
-            // Añadir automáticamente al chat general
-            $chatGeneral = $em->getRepository(Chats::class)->findOneBy(['esGeneral' => true]);
-            if ($chatGeneral) {
-                $newUser->addChatPerteneciente($chatGeneral);
+            // Añadir automáticamente al chat general (si existe)
+            try {
+                $chatGeneral = $em->getRepository(Chats::class)->findOneBy(['esGeneral' => true]);
+                if ($chatGeneral) {
+                    $newUser->addChatPerteneciente($chatGeneral);
+                }
+            } catch (\Exception $e) {
+                error_log('Warning: Could not add user to general chat: ' . $e->getMessage());
             }
 
             $em->persist($newUser);
