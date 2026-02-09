@@ -14,7 +14,14 @@ fi
 echo ""
 echo "--- Environment Check ---"
 echo "APP_ENV: ${APP_ENV}"
-echo "DATABASE_URL: ${DATABASE_URL:0:40}..." 
+# Verificar si DATABASE_URL está definida
+if [ -z "${DATABASE_URL}" ]; then
+    echo "❌ DATABASE_URL: NOT SET (variable is empty or undefined)"
+    echo "Available env variables:"
+    env | grep -E "(DATABASE|MYSQL)" || echo "No DATABASE or MYSQL variables found"
+else
+    echo "✅ DATABASE_URL: ${DATABASE_URL:0:40}..." 
+fi
 echo "PHP Version: $(php -v | head -n 1)"
 
 echo ""
