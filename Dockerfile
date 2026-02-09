@@ -25,15 +25,10 @@ RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
 RUN php bin/console asset-map:compile || true
 
+# Copy and setup entrypoint
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 8080
 
-# Create startup script
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'echo "=== Database Setup ==="' >> /start.sh && \
-    echo 'php bin/console doctrine:migrations:migrate --no-interaction || echo "Migration failed"' >> /start.sh && \
-    echo 'php bin/console doctrine:fixtures:load --no-interaction --append || echo "Fixtures failed"' >> /start.sh && \
-    echo 'echo "=== Starting Server ==="' >> /start.sh && \
-    echo 'exec php -S 0.0.0.0:8080 -t public' >> /start.sh && \
-    chmod +x /start.sh
-
-CMD ["/start.sh"]
+CMD ["/docker-entrypoint.sh"]
