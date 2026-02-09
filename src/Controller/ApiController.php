@@ -55,8 +55,10 @@ final class ApiController extends AbstractController
             $debug['dbname'] = $params['dbname'] ?? 'unknown';
             $debug['unix_socket'] = isset($params['unix_socket']) ? $params['unix_socket'] : 'not_set';
             
-            $em->getConnection()->connect();
-            $dbConnected = $em->getConnection()->isConnected();
+            // Ejecutar query simple para probar conexión
+            $result = $connection->executeQuery('SELECT 1 as test')->fetchOne();
+            $dbConnected = ($result == 1);
+            $debug['test_query_result'] = $result;
         } catch (\Exception $e) {
             $dbError = $e->getMessage();
             $debug['error_class'] = get_class($e);
