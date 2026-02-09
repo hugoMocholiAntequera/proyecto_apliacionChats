@@ -36,11 +36,12 @@ class ApiExceptionListener
             'success' => false,
             'message' => 'Error interno del servidor',
             'error' => (object)[],
-            'debug' => $this->environment === 'dev' ? [
+            'debug' => [
                 'message' => $exception->getMessage(),
                 'file' => $exception->getFile(),
-                'line' => $exception->getLine()
-            ] : null
+                'line' => $exception->getLine(),
+                'trace' => array_slice($exception->getTrace(), 0, 3) // Solo primeras 3 líneas
+            ]
         ], $statusCode);
 
         $event->setResponse($response);
