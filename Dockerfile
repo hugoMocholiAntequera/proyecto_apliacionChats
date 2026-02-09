@@ -1,4 +1,4 @@
-# Build version 2.0 - Force rebuild
+# Build version 3.0 - Force rebuild no cache - 2026-02-09
 FROM php:8.2-cli
 
 RUN apt-get update && apt-get install -y \
@@ -25,9 +25,11 @@ RUN php bin/console cache:clear --env=prod --no-debug || true
 RUN php bin/console cache:warmup --env=prod || true
 RUN php bin/console asset-map:compile || true
 
-# Copy and setup entrypoint
+# Copy entrypoint at the end to ensure it's the latest version
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && \
+    echo "Entrypoint copied and made executable" && \
+    ls -la /docker-entrypoint.sh
 
 EXPOSE 8080
 
