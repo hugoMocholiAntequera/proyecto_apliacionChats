@@ -1,18 +1,18 @@
 security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-    
+
     providers:
-        app_user_provider:
+        app_userprovider:
             entity:
                 class: App\Entity\User
                 property: email
-    
+
     firewalls:
         dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            pattern: ^/((profiler|wdt)|css|images|js)/
             security: false
-        
+
         main:
             lazy: true
             provider: app_user_provider
@@ -23,19 +23,19 @@ security:
                 # Opcional: puedes agregar esto para más claridad
                 username_parameter: _username
                 password_parameter: _password
-            
+
             logout:
                 path: app_logup
-    
+
     access_control:
         # Página principal y API accesibles sin autenticación
-        - { path: ^/$, roles: PUBLIC_ACCESS }
-        - { path: ^/api, roles: PUBLIC_ACCESS }
-        - { path: ^/login$, roles: PUBLIC_ACCESS }
-        - { path: ^/login_check$, roles: PUBLIC_ACCESS }
+
         
-        # El resto requiere autenticación
-        - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
+{ path: ^/api, roles: PUBLIC_ACCESS }
+{ path: ^/login$, roles: PUBLIC_ACCESS }
+{ path: ^/login_check$, roles: PUBLIC_ACCESS }
+  # El resto requiere autenticación
+{ path: ^/, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:

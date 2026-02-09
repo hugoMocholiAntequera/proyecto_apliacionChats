@@ -19,6 +19,8 @@ use DateTime;
 
 final class ApiController extends AbstractController
 {
+
+    var $apikey = "a9F3kL2Qx7M8PZcR4eVYH6B5NwD1JmU0tS";
     #[Route('/api', name: 'app_api')]
     public function index(): Response
     {
@@ -35,7 +37,50 @@ final class ApiController extends AbstractController
 
     /*ENDPOINT API CONEXION* */
     #[Route('/api/conexion', name: 'app_api_conexion', methods: ['POST'])]
-  
+    public function conexion(Request $request): JsonResponse
+    {
+        $content = $request->getContent();
+        if (empty($content)) {
+            return $this->json([
+                'message' => 'Empty request body',
+                'status' => 400,
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'invalid_request', 'message' => 'Request body must be JSON with apiKey']
+            ], 400);
+        }
+
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->json([
+                'message' => 'Invalid JSON',
+                'status' => 400,
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'invalid_json', 'message' => 'Malformed JSON in request body']
+            ], 400);
+        }
+
+        $apikey = isset($data['apikey']) ? trim($data['apikey']) : null;
+        if ($apikey !== $this->apikey) {
+            return $this->json([
+                'message' => 'Unauthorized '.$apikey,
+                'status' => 401,
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'unauthorized', 'message' => 'Invalid API key']
+            ], 401);
+        }
+
+        return $this->json([
+            'message' => 'Connection exitosa',
+            'status' => 200,
+            'success' => true,
+            'data' => null,
+            'error' => null
+        ], 200);
+    }
 
     /*ENDPOINT API LOGIN* */
     #[Route('/api/login', name: 'app_api_login', methods: ['POST'])]
