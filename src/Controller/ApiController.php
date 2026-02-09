@@ -22,6 +22,16 @@ final class ApiController extends AbstractController
 
     private const API_KEY = "a9F3kL2Qx7M8PZcR4eVYH6B5NwD1JmU0tS";
     
+    #[Route('/api/ping', name: 'app_api_ping', methods: ['GET'])]
+    public function ping(): JsonResponse
+    {
+        return $this->json([
+            'success' => true,
+            'message' => 'pong',
+            'timestamp' => date('Y-m-d H:i:s')
+        ], 200);
+    }
+    
     #[Route('/api/health', name: 'app_api_health', methods: ['GET'])]
     public function health(EntityManagerInterface $em): JsonResponse
     {
