@@ -314,11 +314,19 @@ final class ApiController extends AbstractController
                 ], 400);
             }
 
-            // Validar contraseña: mínimo 8 caracteres,
+            // Validar contraseña: mínimo 8 caracteres, al menos 1 mayúscula, al menos 1 número
             $passwordErrors = [];
             
             if (strlen($password) < 8) {
                 $passwordErrors[] = 'Debe tener al menos 8 caracteres';
+            }
+            
+            if (!preg_match('/[A-Z]/', $password)) {
+                $passwordErrors[] = 'Debe contener al menos una letra mayúscula';
+            }
+            
+            if (!preg_match('/[0-9]/', $password)) {
+                $passwordErrors[] = 'Debe contener al menos un número';
             }
             
             if (!empty($passwordErrors)) {
